@@ -31,6 +31,8 @@ public class UI_InGame_SkillButtons : ManagerBase<UI_InGame_SkillButtons>, IGame
 
 	private Canvas _canvas;
 
+	private bool _isAnimating;
+
 	public MonoBehaviour pingableTarget
 	{
 		get
@@ -41,8 +43,8 @@ public class UI_InGame_SkillButtons : ManagerBase<UI_InGame_SkillButtons>, IGame
 			}
 			if (ManagerBase<EditSkillManager>.instance.selectedGemSlot.HasValue)
 			{
-				GemLocation loc = ManagerBase<EditSkillManager>.instance.selectedGemSlot.Value;
-				return skillButtons[(int)loc.skill].GetGemSlot(loc.index);
+				GemLocation value = ManagerBase<EditSkillManager>.instance.selectedGemSlot.Value;
+				return skillButtons[(int)value.skill].GetGemSlot(value.index);
 			}
 			return null;
 		}
@@ -51,6 +53,7 @@ public class UI_InGame_SkillButtons : ManagerBase<UI_InGame_SkillButtons>, IGame
 	protected override void Awake()
 	{
 		base.Awake();
+		layoutExpandedScale = 1.9f;
 		_canvas = GetComponent<Canvas>();
 		_selfDefaultScale = base.transform.localScale.x;
 		_cvs = new Vector3[adjustedItems.Length];
@@ -59,10 +62,10 @@ public class UI_InGame_SkillButtons : ManagerBase<UI_InGame_SkillButtons>, IGame
 	public override void FrameUpdate()
 	{
 		base.FrameUpdate();
-		Transform[] targets = ((DewInput.currentMode == InputMode.KeyboardAndMouse) ? targetOnKeyboardMouse : targetOnGamepad);
+		Transform[] array = ((DewInput.currentMode == InputMode.KeyboardAndMouse) ? targetOnKeyboardMouse : targetOnGamepad);
 		for (int i = 0; i < adjustedItems.Length; i++)
 		{
-			adjustedItems[i].position = Vector3.SmoothDamp(adjustedItems[i].position, targets[i].position, ref _cvs[i], 0.075f);
+			adjustedItems[i].position = Vector3.SmoothDamp(adjustedItems[i].position, array[i].position, ref _cvs[i], 0.075f);
 		}
 	}
 
@@ -98,12 +101,20 @@ public class UI_InGame_SkillButtons : ManagerBase<UI_InGame_SkillButtons>, IGame
 				expandedLayouts[i].localScale = Vector3.one * layoutExpandedScale;
 			}
 			CanvasGroup[] array = hiddenWhenExpanded;
-			foreach (CanvasGroup obj in array)
+			if (_isAnimating)
 			{
-				obj.DOFade(0f, hiddenWhenExpandedDuration).SetUpdate(isIndependentUpdate: true);
-				obj.interactable = false;
-				obj.blocksRaycasts = false;
+				return;
 			}
+			for (int j = 0; j < array.Length; j++)
+			{
+				RectTransform component = array[j].GetComponent<RectTransform>();
+				if (component != null)
+				{
+					component.DOKill(complete: true);
+					component.DOAnchorPosY(component.anchoredPosition.y + component.parent.GetComponent<RectTransform>().rect.height * 2f, hiddenWhenExpandedDuration).SetUpdate(isIndependentUpdate: true);
+				}
+			}
+			_isAnimating = true;
 		}
 		else
 		{
@@ -112,13 +123,17 @@ public class UI_InGame_SkillButtons : ManagerBase<UI_InGame_SkillButtons>, IGame
 			{
 				expandedLayouts[k].localScale = Vector3.one;
 			}
-			CanvasGroup[] array = hiddenWhenExpanded;
-			foreach (CanvasGroup obj2 in array)
+			CanvasGroup[] array2 = hiddenWhenExpanded;
+			for (int l = 0; l < array2.Length; l++)
 			{
-				obj2.DOFade(1f, hiddenWhenExpandedDuration).SetUpdate(isIndependentUpdate: true);
-				obj2.interactable = true;
-				obj2.blocksRaycasts = true;
+				RectTransform component2 = array2[l].GetComponent<RectTransform>();
+				if (component2 != null && _isAnimating)
+				{
+					component2.DOKill(complete: true);
+					component2.DOAnchorPosY(component2.anchoredPosition.y - component2.parent.GetComponent<RectTransform>().rect.height * 2f, hiddenWhenExpandedDuration).SetUpdate(isIndependentUpdate: true);
+				}
 			}
+			_isAnimating = false;
 		}
 		if (DewInput.currentMode == InputMode.Gamepad)
 		{
@@ -167,7 +182,7 @@ public class UI_InGame_SkillButtons : ManagerBase<UI_InGame_SkillButtons>, IGame
 		{
 			if (ManagerBase<ControlManager>.instance.isEditSkillDisabled)
 			{
-				return ManagerBase<EditSkillManager>.instance.mode != EditSkillManager.ModeType.None;
+				return ManagerBase<EditSkillManager>.instance.mode > EditSkillManager.ModeType.None;
 			}
 			return true;
 		}
@@ -250,8 +265,8 @@ public class UI_InGame_SkillButtons : ManagerBase<UI_InGame_SkillButtons>, IGame
 		}
 		else if (ManagerBase<EditSkillManager>.instance.selectedGemSlot.HasValue)
 		{
-			GemLocation loc = ManagerBase<EditSkillManager>.instance.selectedGemSlot.Value;
-			skillButtons[(int)loc.skill].GetGemSlot(loc.index).ShowTooltip(SingletonBehaviour<UI_TooltipManager>.instance);
+			GemLocation value = ManagerBase<EditSkillManager>.instance.selectedGemSlot.Value;
+			skillButtons[(int)value.skill].GetGemSlot(value.index).ShowTooltip(SingletonBehaviour<UI_TooltipManager>.instance);
 		}
 		return true;
 	}

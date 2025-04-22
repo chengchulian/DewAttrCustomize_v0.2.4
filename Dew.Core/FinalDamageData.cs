@@ -56,6 +56,17 @@ public struct FinalDamageData
 		{
 			direction = null;
 		}
+		
+		if ((victim as BossMonster) is not null)
+		{
+			//10%=0.1
+			float configBossSingleInjuryHealthMultiplier = AttrCustomizeResources.Config.bossSingleInjuryHealthMultiplier;
+			if (configBossSingleInjuryHealthMultiplier<0.999f)
+			{
+				amount = Mathf.Min(amount, victim.Status.maxHealth * configBossSingleInjuryHealthMultiplier);
+			}
+		}
+		
 		type = data.source;
 		elemental = data.elemental;
 		attackEffectType = data.attackEffectType;

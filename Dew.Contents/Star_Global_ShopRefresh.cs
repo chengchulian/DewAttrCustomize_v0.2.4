@@ -1,15 +1,15 @@
 public class Star_Global_ShopRefresh : DewStarItemOld
 {
-	public override int maxLevel => 1;
+    public override int maxLevel => 1;
 
-	public override bool ShouldInitInGame()
-	{
-		return base.isServer;
-	}
+    public override bool ShouldInitInGame()
+    {
+        return base.isServer;
+    }
 
-	public override void OnStartInGame()
-	{
-		base.OnStartInGame();
-		base.player.allowedShopRefreshes = 1;
-	}
+    public override void OnStartInGame()
+    {
+        base.OnStartInGame();
+        base.player.allowedShopRefreshes = AttrCustomizeResources.Config.shopRefreshes;
+    }
 }

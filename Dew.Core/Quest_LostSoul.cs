@@ -42,20 +42,37 @@ public class Quest_LostSoul : DewQuest
 			}
 			NetworktargetHero.ClientActorEvent_OnDestroyed += new Action<Actor>(ClientActorEventOnDestroyed);
 			NetworktargetHero.ClientHeroEvent_OnRevive += new Action<Hero>(ClientHeroEventOnRevive);
-			SetNextGoal_ReachNode(new NextGoalSettings
+
+			if (AttrCustomizeResources.Config.enableCurrentNodeGenerateLostSoul)
 			{
-				nodeIndexSettings = new GetNodeIndexSettings
+				if (NetworkedManagerBase<ZoneManager>.instance.currentNode.type != WorldNodeType.ExitBoss || AttrCustomizeResources.Config.enableBossRoomGenerateLostSoul)
 				{
-					desiredDistance = NetworkedManagerBase<GameManager>.instance.difficulty.lostSoulDistance
-				},
-				modifierData = NetworktargetHero.netId.ToString(),
-				addedModifier = "RoomMod_HeroSoul",
-				revertModifierOnRemove = true,
-				failQuestOnFail = true,
-				dontChangeDescription = true,
-				dontChangeTitle = true,
-				ignoreSuboptimalSituation = true
-			});
+					SingletonDewNetworkBehaviour<Room>.instance.props.TryGetGoodNodePosition(out var shrinePos);
+					CreateActor(shrinePos, null, delegate(Shrine_HeroSoul r)
+					{
+						r.targetHero = targetHero;
+					});
+				}
+			}
+			else
+			{
+				SetNextGoal_ReachNode(new NextGoalSettings
+				{
+					nodeIndexSettings = new GetNodeIndexSettings
+					{
+						desiredDistance = NetworkedManagerBase<GameManager>.instance.difficulty.lostSoulDistance
+					},
+					modifierData = NetworktargetHero.netId.ToString(),
+					addedModifier = "RoomMod_HeroSoul",
+					revertModifierOnRemove = true,
+					failQuestOnFail = true,
+					dontChangeDescription = true,
+					dontChangeTitle = true,
+					ignoreSuboptimalSituation = true
+				});
+			}
+
+
 		}
 	}
 

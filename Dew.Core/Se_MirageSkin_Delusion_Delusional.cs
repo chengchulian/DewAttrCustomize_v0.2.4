@@ -30,11 +30,19 @@ public class Se_MirageSkin_Delusion_Delusional : StackedStatusEffect
 			color = new Color(1f, 0.5f, 0.7f),
 			worldPosGetter = () => (!(base.victim != null)) ? Vector3.zero : base.victim.Visual.GetCenterPosition()
 		});
+		float num;
+		if (AttrCustomizeResources.Config.enableHealthReduceMultiplierAddByZone)
+		{
+			num = (float)(90.0 + 10.0 * (1.0 - 1.0 / Math.Pow(2.0, Math.Min(100, NetworkedManagerBase<ZoneManager>.instance.currentZoneIndex))));
+		}else
+		{
+			num = base.stack;
+		}
 		if (base.victim.isOwned)
 		{
 			_timer = ShowOnScreenTimerLocally(new OnScreenTimerHandle
 			{
-				rawTextGetter = () => string.Format("{0} <b><alpha=999>({1}%)</b>", DewLocalization.GetUIValue("Se_MirageSkin_Delusion_Delusional_Name"), base.stack),
+				rawTextGetter = () => string.Format("{0} <b><alpha=999>({1}%)</b>", DewLocalization.GetUIValue("Se_MirageSkin_Delusion_Delusional_Name"), num),
 				color = new Color(1f, 0.4f, 0.7f),
 				fillAmountGetter = () => base.normalizedDuration ?? 1f
 			});
@@ -91,7 +99,16 @@ public class Se_MirageSkin_Delusion_Delusional : StackedStatusEffect
 
 	private void VictimOntakenHealProcessor(ref HealData data, Actor actor, Entity target)
 	{
-		data.ApplyReduction((float)base.stack / 100f);
+		float num;
+		if (AttrCustomizeResources.Config.enableHealthReduceMultiplierAddByZone)
+		{
+			num = (float)(90.0 + 10.0 * (1.0 - 1.0 / Math.Pow(2.0, Math.Min(100, NetworkedManagerBase<ZoneManager>.instance.currentZoneIndex))));
+		}else
+		{
+			num = base.stack;
+		}
+		
+		data.ApplyReduction((float)num / 100f);
 		if (!base.victim.TryGetData<Ad_HealPreventedText>(out var prevented))
 		{
 			prevented = new Ad_HealPreventedText();

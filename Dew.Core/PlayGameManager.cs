@@ -10,6 +10,12 @@ public class PlayGameManager : GameManager
 {
 	public new static PlayGameManager instance => NetworkedManagerBase<GameManager>.instance as PlayGameManager;
 
+	public override void OnStartServer()
+	{
+		base.OnStartServer();
+		AttrCustomizeManager.ExecuteInGameOnce();
+	}
+
 	public override void OnStartClient()
 	{
 		base.OnStartClient();

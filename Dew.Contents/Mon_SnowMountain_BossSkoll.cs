@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using Mirror;
 using UnityEngine;
 
@@ -107,7 +108,11 @@ public class Mon_SnowMountain_BossSkoll : BossMonster
 	protected override void OnBossSoulBeforeSpawn(Shrine_BossSoul soul)
 	{
 		base.OnBossSoulBeforeSpawn(soul);
-		soul.SetGemReward<Gem_L_GlacialCore>(dropGlacialCoreChance);
+		
+		if (!AttrCustomizeResources.Config.removeGems.Contains("Gem_L_GlacialCore"))
+		{
+			soul.SetGemReward<Gem_L_GlacialCore>(dropGlacialCoreChance);
+		}
 	}
 
 	private void MirrorProcessed()

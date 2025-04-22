@@ -810,14 +810,20 @@ public class HeroSkill : HeroComponent, ICleanup
 	{
 		switch (type)
 		{
-		case HeroSkillLocation.Q:
-		case HeroSkillLocation.W:
-		case HeroSkillLocation.E:
-			return 3;
-		case HeroSkillLocation.R:
-			return 3;
-		default:
-			return 0;
+			case HeroSkillLocation.Q:
+				return AttrCustomizeResources.Config.skillQGemCount;
+			case HeroSkillLocation.W:
+				return AttrCustomizeResources.Config.skillWGemCount;
+			case HeroSkillLocation.E:
+				return AttrCustomizeResources.Config.skillEGemCount;
+			case HeroSkillLocation.R:
+				return AttrCustomizeResources.Config.skillRGemCount;
+			case HeroSkillLocation.Identity:
+				return AttrCustomizeResources.Config.skillIdentityGemCount;
+			case HeroSkillLocation.Movement:
+				return AttrCustomizeResources.Config.skillMovementGemCount;
+			default:
+				return 0;
 		}
 	}
 

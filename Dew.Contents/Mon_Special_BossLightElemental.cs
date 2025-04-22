@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 
 public class Mon_Special_BossLightElemental : BossMonster
@@ -87,7 +88,10 @@ public class Mon_Special_BossLightElemental : BossMonster
 	protected override void OnBossSoulBeforeSpawn(Shrine_BossSoul soul)
 	{
 		base.OnBossSoulBeforeSpawn(soul);
-		soul.SetSkillReward<St_L_WorldCracker>(1f);
+		if (!AttrCustomizeResources.Config.removeSkills.Contains("St_L_WorldCracker"))
+		{
+			soul.SetSkillReward<St_L_WorldCracker>(1f);
+		}
 	}
 
 	private void MirrorProcessed()

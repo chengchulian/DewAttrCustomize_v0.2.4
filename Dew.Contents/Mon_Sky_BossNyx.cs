@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Mirror;
 using UnityEngine;
@@ -206,7 +207,13 @@ public class Mon_Sky_BossNyx : BossMonster
 	protected override void OnBossSoulBeforeSpawn(Shrine_BossSoul soul)
 	{
 		base.OnBossSoulBeforeSpawn(soul);
-		soul.SetSkillReward<St_L_HerWorld>(0.1f);
+		
+		if (!AttrCustomizeResources.Config.removeSkills.Contains("St_L_HerWorld"))
+		{
+			soul.SetSkillReward<St_L_HerWorld>(0.1f);
+		}
+		
+
 	}
 
 	private void MirrorProcessed()

@@ -385,7 +385,7 @@ public class LobbyServiceSteam : LobbyServiceProvider
 			data._difficulty = SteamMatchmaking.GetLobbyData(lobbyId, "difficulty");
 			data._hasGameStarted = bool.Parse(SteamMatchmaking.GetLobbyData(lobbyId, "hasGameStarted"));
 			data._currentPlayers = SteamMatchmaking.GetNumLobbyMembers(lobbyId);
-			data._maxPlayers = Mathf.Clamp(SteamMatchmaking.GetLobbyMemberLimit(lobbyId), 0, 4);
+			data._maxPlayers = Mathf.Clamp(SteamMatchmaking.GetLobbyMemberLimit(lobbyId), 0, 1024);
 			data._version = SteamMatchmaking.GetLobbyData(lobbyId, "version");
 			data._isInviteOnly = bool.Parse(SteamMatchmaking.GetLobbyData(lobbyId, "isInviteOnly"));
 			data._shortCode = SteamMatchmaking.GetLobbyData(lobbyId, "shortCode");

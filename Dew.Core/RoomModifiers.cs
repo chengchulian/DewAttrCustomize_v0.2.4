@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -17,6 +18,19 @@ public class RoomModifiers : RoomComponent
 		{
 			HandleRuntimeAddition(mods[i].id);
 		}
+		StartCoroutine(ExecuteRoomOnceCoroutine());
+
+	}
+
+	IEnumerator ExecuteRoomOnceCoroutine()
+	{
+
+		while (!SingletonDewNetworkBehaviour<Room>.instance.isActive)
+		{
+			yield return new WaitForSeconds(0.1f);
+		}
+		AttrCustomizeManager.ExecuteRoomOnce();
+
 	}
 
 	internal void HandleRuntimeRemoval(int id)

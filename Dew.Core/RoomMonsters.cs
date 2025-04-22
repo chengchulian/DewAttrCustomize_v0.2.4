@@ -386,7 +386,7 @@ public class RoomMonsters : RoomComponent
 			{
 				array2[i].isLocked = true;
 			}
-			StartCoroutine(Routine());
+			StartCoroutine(Routine1());
 		}
 		static IEnumerator Routine()
 		{
@@ -396,7 +396,7 @@ public class RoomMonsters : RoomComponent
 				SingletonDewNetworkBehaviour<Room>.instance.ClearRoom();
 			}
 		}
-		IEnumerator Routine()
+		IEnumerator Routine1()
 		{
 			yield return new WaitWhile(() => NetworkedManagerBase<ZoneManager>.instance.isInRoomTransition);
 			yield return new WaitForSeconds(global::UnityEngine.Random.Range(0.5f, 1f));
@@ -955,13 +955,16 @@ public class RoomMonsters : RoomComponent
 		float mirageChance = matrix[Mathf.Clamp(NetworkedManagerBase<ZoneManager>.instance.currentZoneIndex, 0, matrix.GetLength(0) - 1), Mathf.Clamp(Dew.GetAliveHeroCount() - 1, 0, matrix.GetLength(1) - 1)];
 		if (mirageChance > 0.0001f)
 		{
-			mirageChance += addedMirageChance;
+			mirageChance += addedMirageChance * AttrCustomizeResources.Config.monsterMirageChanceMultiple;
 		}
 		if (rule.isBossSpawn)
 		{
-			waves = 1;
-			hunterChance = 0f;
-			mirageChance = 0f;
+			int zoneAddCount = (NetworkedManagerBase<ZoneManager>.instance.currentZoneIndex) * AttrCustomizeResources.Config.bossCountAddByZone;
+			int loopAddCount = (NetworkedManagerBase<ZoneManager>.instance.loopIndex) * AttrCustomizeResources.Config.bossCountAddByLoop;
+			int bossCount = AttrCustomizeResources.Config.bossCount;
+			waves = bossCount + loopAddCount + zoneAddCount;
+			hunterChance = AttrCustomizeResources.Config.bossHunterChance;
+			mirageChance = AttrCustomizeResources.Config.bossMirageChance;
 		}
 		int waveIndex = 0;
 		while (true)
@@ -973,6 +976,10 @@ public class RoomMonsters : RoomComponent
 			{
 				waveStartTime = Time.time;
 				waveTimeout = global::UnityEngine.Random.Range(rule.waveTimeoutMin, rule.waveTimeoutMax);
+				if (rule.isBossSpawn && AttrCustomizeResources.Config.enableBossSpawnAllOnce)
+				{
+					waveTimeout = 0f;
+				}
 				float population = global::UnityEngine.Random.Range(rule.populationPerWave.x, rule.populationPerWave.y);
 				population = NetworkedManagerBase<GameManager>.instance.GetAdjustedMonsterSpawnPopulation(population, s.ignoreTurnPopMultiplier, s.ignoreCoopPopMultiplier) * s.spawnPopulationMultiplier * spawnedPopMultiplier;
 				nextWaveThreshold = global::UnityEngine.Random.Range(rule.nextWavePopulationThreshold.x, rule.nextWavePopulationThreshold.y);

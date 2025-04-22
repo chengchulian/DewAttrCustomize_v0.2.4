@@ -93,7 +93,7 @@ public abstract class LobbyServiceProvider : MonoBehaviour
 
 	public int GetInitialAttr_maxPlayers()
 	{
-		return 4;
+		return AttrCustomizeResources.Config.maxPlayer;
 	}
 
 	public string GetInitialAttr_name()

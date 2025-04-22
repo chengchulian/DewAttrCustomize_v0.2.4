@@ -99,10 +99,15 @@ public class Se_HeroKnockedOut : StatusEffect
 		{
 			return;
 		}
-		if (!_didAddQuest && Time.time - base.creationTime > 1f && Dew.SelectRandomAliveHero(fallbackToDead: false) != null && NetworkedManagerBase<ZoneManager>.instance.currentNode.type != WorldNodeType.ExitBoss)
+		if (!_didAddQuest 
+		    && Time.time - base.creationTime > 1f
+		    && Dew.SelectRandomAliveHero(fallbackToDead: false) != null
+		    && (AttrCustomizeResources.Config.enableBossRoomGenerateLostSoul 
+		        || NetworkedManagerBase<ZoneManager>.instance.currentNode.type != WorldNodeType.ExitBoss))
 		{
 			_didAddQuest = true;
-			NetworkedManagerBase<QuestManager>.instance.StartQuest(delegate(Quest_LostSoul s)
+    
+			NetworkedManagerBase<QuestManager>.instance.StartQuest<Quest_LostSoul>(s => 
 			{
 				s.NetworktargetHero = (Hero)base.victim;
 			});
