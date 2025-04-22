@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Dew.Contents</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>12.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup />
+  <ItemGroup />
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\UnityEngine.AnimationModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Dew.Core">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\Dew.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Mirror">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\Mirror.dll</HintPath>
+    </Reference>
+    <Reference Include="UniTask">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\UniTask.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ParticleSystemModule">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Dew.External">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\Dew.External.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AIModule">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\UnityEngine.AIModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TerrainModule">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\UnityEngine.TerrainModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\UnityEngine.AudioModule.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Universal.Runtime">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\Unity.RenderPipelines.Universal.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.RenderPipelines.Core.Runtime">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\Unity.RenderPipelines.Core.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="DOTween">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\DOTween.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Core" />
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+    </Reference>
+    <Reference Include="com.rlabrecque.steamworks.net">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\com.rlabrecque.steamworks.net.dll</HintPath>
+    </Reference>
+    <Reference Include="NavMeshComponents">
+      <HintPath>..\..\..\AppData\Steam\steamapps\common\Shape of Dreams Demo\Shape of Dreams_Data\Managed\NavMeshComponents.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

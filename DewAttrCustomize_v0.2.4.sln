@@ -1,0 +1,39 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dew.External", "Dew.External\Dew.External.csproj", "{6E82F027-4BD8-4713-B2C1-B0A0183E221D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dew.Core", "Dew.Core\Dew.Core.csproj", "{405FA9FF-87CC-4417-BA58-00AE278BCC44}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dew.Contents", "Dew.Contents\Dew.Contents.csproj", "{1ACDA05B-E3C7-4161-9DF5-EA86D3356056}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dew.UI", "Dew.UI\Dew.UI.csproj", "{A60A8F33-CF60-4E64-BD15-AD2FF2F5FA38}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|AnyCPU = Debug|AnyCPU
+		Release|AnyCPU = Release|AnyCPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6E82F027-4BD8-4713-B2C1-B0A0183E221D}.Debug|AnyCPU.ActiveCfg = Debug|AnyCPU
+		{6E82F027-4BD8-4713-B2C1-B0A0183E221D}.Debug|AnyCPU.Build.0 = Debug|AnyCPU
+		{6E82F027-4BD8-4713-B2C1-B0A0183E221D}.Release|AnyCPU.ActiveCfg = Release|AnyCPU
+		{6E82F027-4BD8-4713-B2C1-B0A0183E221D}.Release|AnyCPU.Build.0 = Release|AnyCPU
+		{405FA9FF-87CC-4417-BA58-00AE278BCC44}.Debug|AnyCPU.ActiveCfg = Debug|AnyCPU
+		{405FA9FF-87CC-4417-BA58-00AE278BCC44}.Debug|AnyCPU.Build.0 = Debug|AnyCPU
+		{405FA9FF-87CC-4417-BA58-00AE278BCC44}.Release|AnyCPU.ActiveCfg = Release|AnyCPU
+		{405FA9FF-87CC-4417-BA58-00AE278BCC44}.Release|AnyCPU.Build.0 = Release|AnyCPU
+		{1ACDA05B-E3C7-4161-9DF5-EA86D3356056}.Debug|AnyCPU.ActiveCfg = Debug|AnyCPU
+		{1ACDA05B-E3C7-4161-9DF5-EA86D3356056}.Debug|AnyCPU.Build.0 = Debug|AnyCPU
+		{1ACDA05B-E3C7-4161-9DF5-EA86D3356056}.Release|AnyCPU.ActiveCfg = Release|AnyCPU
+		{1ACDA05B-E3C7-4161-9DF5-EA86D3356056}.Release|AnyCPU.Build.0 = Release|AnyCPU
+		{A60A8F33-CF60-4E64-BD15-AD2FF2F5FA38}.Debug|AnyCPU.ActiveCfg = Debug|AnyCPU
+		{A60A8F33-CF60-4E64-BD15-AD2FF2F5FA38}.Debug|AnyCPU.Build.0 = Debug|AnyCPU
+		{A60A8F33-CF60-4E64-BD15-AD2FF2F5FA38}.Release|AnyCPU.ActiveCfg = Release|AnyCPU
+		{A60A8F33-CF60-4E64-BD15-AD2FF2F5FA38}.Release|AnyCPU.Build.0 = Release|AnyCPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
