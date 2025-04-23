@@ -960,10 +960,12 @@ public static class ConsoleCommands
 			HeroSkillLocation.Q,
 			HeroSkillLocation.W,
 			HeroSkillLocation.E,
-			HeroSkillLocation.R
+			HeroSkillLocation.R,
+			HeroSkillLocation.Identity,
+			HeroSkillLocation.Movement,
 		})
 		{
-			for (int j = 0; j < 3; j++)
+			for (int j = 0; j < h.Skill.GetMaxGemCount(s); j++)
 			{
 				GetRandomGem(out type2, out level2);
 				GemLocation loc2;

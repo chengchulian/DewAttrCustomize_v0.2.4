@@ -108,10 +108,11 @@ public class UI_InGame_SkillButtons : ManagerBase<UI_InGame_SkillButtons>, IGame
 			for (int j = 0; j < array.Length; j++)
 			{
 				RectTransform component = array[j].GetComponent<RectTransform>();
+				component.DOScale(Vector3.one * selfExpandedScale, animDuration).SetUpdate(isIndependentUpdate: true);
 				if (component != null)
 				{
 					component.DOKill(complete: true);
-					component.DOAnchorPosY(component.anchoredPosition.y + component.parent.GetComponent<RectTransform>().rect.height * 2f, hiddenWhenExpandedDuration).SetUpdate(isIndependentUpdate: true);
+					component.DOAnchorPosY(component.anchoredPosition.y + component.parent.GetComponent<RectTransform>().rect.height * 3f, hiddenWhenExpandedDuration).SetUpdate(isIndependentUpdate: true);
 				}
 			}
 			_isAnimating = true;
@@ -127,10 +128,11 @@ public class UI_InGame_SkillButtons : ManagerBase<UI_InGame_SkillButtons>, IGame
 			for (int l = 0; l < array2.Length; l++)
 			{
 				RectTransform component2 = array2[l].GetComponent<RectTransform>();
+				component2.DOScale(Vector3.one * _selfDefaultScale, animDuration).SetUpdate(isIndependentUpdate: true);
 				if (component2 != null && _isAnimating)
 				{
 					component2.DOKill(complete: true);
-					component2.DOAnchorPosY(component2.anchoredPosition.y - component2.parent.GetComponent<RectTransform>().rect.height * 2f, hiddenWhenExpandedDuration).SetUpdate(isIndependentUpdate: true);
+					component2.DOAnchorPosY(component2.anchoredPosition.y - component2.parent.GetComponent<RectTransform>().rect.height * 3f, hiddenWhenExpandedDuration).SetUpdate(isIndependentUpdate: true);
 				}
 			}
 			_isAnimating = false;
