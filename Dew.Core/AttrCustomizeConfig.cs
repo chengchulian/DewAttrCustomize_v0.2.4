@@ -59,6 +59,7 @@
         enableLucidDreamWild = false,
         enableLucidDreamMadLife = false,
         enableLucidDreamSparklingDreamFlask = false,
+        enableGemMerge = true,
     };
 
     /**
@@ -112,17 +113,17 @@
     public float littleMonsterDamageMultiplier;
 
     /**
-     * 额外生命成长倍率(每关成长)
+     * 额外生命成长倍率(此数值为 n^当前关卡数 例: 怪物原始血量为100 当前关卡数为10 值为2 血量为100*2^10)
      */
     public float extraHealthGrowthMultiplier;
 
     /**
-     * 额外伤害成长倍率(每关成长)
+     * 额外伤害成长倍率(此数值为 n^当前关卡数)
      */
     public float extraDamageGrowthMultiplier;
 
     /**
-     * 引导祭坛数量
+     * 引导祭坛数量倍数
      */
     public float beneficialNodeMultiplier;
 
@@ -346,4 +347,9 @@
      * 清醒梦 泡影浮梦 (生命药水和引导祭坛不再恢复生命值,而是提供梦尘)
      */
     public bool enableLucidDreamSparklingDreamFlask;
+    
+    /**
+     * 精华合并
+     */
+    public bool enableGemMerge;
 }

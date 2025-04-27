@@ -798,7 +798,7 @@ public class HeroSkill : HeroComponent, ICleanup
 			{
 				loc = p.Key;
 				gem = p.Value;
-				return true;
+				return AttCustomizeResources.Config.enableGemMerge;
 			}
 		}
 		loc = default(GemLocation);

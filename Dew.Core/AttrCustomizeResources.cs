@@ -58,4 +58,8 @@ public class AttrCustomizeResources
     
         return target.ToString();
     }
+    public static void ResetConfig()
+    {
+        _config = null;
+    }
 }

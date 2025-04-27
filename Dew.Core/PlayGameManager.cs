@@ -12,6 +12,7 @@ public class PlayGameManager : GameManager
 
 	public override void OnStartServer()
 	{
+		AttrCustomizeResources.ResetConfig();
 		base.OnStartServer();
 		AttrCustomizeManager.ExecuteInGameOnce();
 	}

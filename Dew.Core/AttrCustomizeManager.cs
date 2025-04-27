@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using Mirror;
+using Newtonsoft.Json;
 using UnityEngine;
 
 public class AttrCustomizeManager
@@ -12,6 +13,15 @@ public class AttrCustomizeManager
     private static int _lastObliviaxQuestZoneIndex = -100;
     private static bool _globalOnceFlag = false;
 
+    private static Dictionary<String, DifficultyData> _difficultyDataMap;
+
+    public class DifficultyData(DewDifficultySettings dewDifficultySettings)
+    {
+        private string name = dewDifficultySettings.name;
+        public float healRawMultiplier = dewDifficultySettings.healRawMultiplier;
+        public float beneficialNodeMultiplier = dewDifficultySettings.beneficialNodeMultiplier;
+    }
+    
     private class Ad_MonsterLevelUp
     {
         public StatBonus bonus;
@@ -19,9 +29,22 @@ public class AttrCustomizeManager
 
     public static void ExecuteGlobalOnce()
     {
+        LoadDifficultyData();
         _globalOnceFlag = true;
-        ModifyBeneficialNodeMultiplier();
-        ModifyHealRawMultiplier();
+    }
+
+    private static void LoadDifficultyData()
+    {
+        if (_difficultyDataMap != null) return;
+        
+        IEnumerable<DewDifficultySettings> difficultySettingsEnumerable =
+            DewResources.FindAllByNameSubstring<DewDifficultySettings>("diff");
+
+        _difficultyDataMap = new Dictionary<String, DifficultyData>();
+        foreach (var dewDifficultySettings in difficultySettingsEnumerable)
+        {
+            _difficultyDataMap.Add(dewDifficultySettings.name, new DifficultyData(dewDifficultySettings));
+        }
     }
 
     public static void ExecuteInGameOnce()
@@ -31,6 +54,8 @@ public class AttrCustomizeManager
             ExecuteGlobalOnce();
         }
 
+        ModifyBeneficialNodeMultiplier();
+        ModifyHealRawMultiplier();
         LucidDreamEmbraceMortality();
         LucidDreamBonVoyage();
         LucidDreamGrievousWounds();
@@ -276,23 +301,28 @@ public class AttrCustomizeManager
 
     private static void ModifyHealRawMultiplier()
     {
+        
         IEnumerable<DewDifficultySettings> difficultySettingsEnumerable =
             DewResources.FindAllByNameSubstring<DewDifficultySettings>("diff");
         foreach (var dewDifficultySettings in difficultySettingsEnumerable)
         {
+            var difficultyData = _difficultyDataMap[dewDifficultySettings.name];
             dewDifficultySettings.healRawMultiplier = AttrCustomizeResources.Config.healRawMultiplier *
-                                                      dewDifficultySettings.healRawMultiplier;
+                                                      difficultyData.healRawMultiplier;
         }
     }
 
+
     private static void ModifyBeneficialNodeMultiplier()
     {
+        
         IEnumerable<DewDifficultySettings> difficultySettingsEnumerable =
             DewResources.FindAllByNameSubstring<DewDifficultySettings>("diff");
         foreach (var dewDifficultySettings in difficultySettingsEnumerable)
         {
+            var difficultyData = _difficultyDataMap[dewDifficultySettings.name];
             dewDifficultySettings.beneficialNodeMultiplier = AttrCustomizeResources.Config.beneficialNodeMultiplier *
-                                                             dewDifficultySettings.beneficialNodeMultiplier;
+                                                             difficultyData.beneficialNodeMultiplier;
         }
     }
 
@@ -330,7 +360,7 @@ public class AttrCustomizeManager
     {
         if (AttrCustomizeResources.Config.enableWorldReveal)
         {
-            ConsoleCommands.WorldReveal();
+            ConsoleCommands.WorldRevealFull();
         }
     }
 
@@ -364,7 +394,7 @@ public class AttrCustomizeManager
                 });
 
                 StringBuilder sb = new StringBuilder();
-                sb.AppendLine("伤害排行");
+                sb.Append("伤害排行");
 
                 // 使用 for 循环遍历伤害列表
                 for (int j = 0; j < dmgList.Count; j++)
@@ -375,7 +405,7 @@ public class AttrCustomizeManager
                     float maxDmg2 = valueTuple.Item3;
                     string totalDmgFormatted = totalDmg2.ToString("#,0", CultureInfo.InvariantCulture);
                     string maxDmgFormatted = maxDmg2.ToString("#,0", CultureInfo.InvariantCulture);
-                    sb.AppendLine(playerProfileName2 + ": 总伤害 " + totalDmgFormatted + " | 最强一击 " + maxDmgFormatted);
+                    sb.Append(playerProfileName2 + ": 总伤害 " + totalDmgFormatted + " | 最强一击 " + maxDmgFormatted);
                 }
 
                 // 延迟发送消息（使用显式委托）
@@ -501,88 +531,6 @@ public class AttrCustomizeManager
         return (float)(initialY * Math.Pow(multiplier, x));
     }
 
-    public static bool TryGetNodeIndexForNextGoal(DewQuest quest, GetNodeIndexSettings s, out int nodeIndex)
-    {
-        ZoneManager zoneManager = NetworkedManagerBase<ZoneManager>.instance;
-        int currentNodeIndex = zoneManager.currentNodeIndex;
-        SyncList<WorldNodeData> nodes = zoneManager.nodes;
-        int exitNodeIndex = 0;
-        for (int j = 0; j < nodes.Count; j++)
-        {
-            if (nodes[j].type == WorldNodeType.ExitBoss)
-            {
-                exitNodeIndex = j;
-                break;
-            }
-        }
-
-        int currentDistToExit = zoneManager.GetNodeDistance(currentNodeIndex, exitNodeIndex);
-        int index = (nodeIndex = Dew.SelectBestIndexWithScore(nodes, GetScore));
-        return GetScore(nodes[index], index) > -5000f;
-
-        float GetScore(WorldNodeData data, int i)
-        {
-            float score = 0f;
-            if (data.IsSidetrackNode())
-            {
-                score -= 10000f;
-            }
-
-            if (!s.allowedTypes.Contains(data.type))
-            {
-                score -= 10000f;
-            }
-
-            if (i == currentNodeIndex)
-            {
-                if (AttrCustomizeResources.Config.enableCurrentNodeGenerateLostSoul && quest is Quest_LostSoul)
-                {
-                    score -= -11000f;
-                }
-                else
-                {
-                    score -= 10000f;
-                }
-            }
-
-            switch (data.status)
-            {
-                case WorldNodeStatus.Revealed:
-                case WorldNodeStatus.RevealedFull:
-                    score -= 2.5f;
-                    break;
-                case WorldNodeStatus.HasVisited:
-                    score -= 10000f;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-                case WorldNodeStatus.Unexplored:
-                    break;
-            }
-
-            int nodeDist = zoneManager.GetNodeDistance(currentNodeIndex, i);
-            if (nodeDist < s.desiredDistance.x)
-            {
-                score -= (float)(s.desiredDistance.x - nodeDist) * 1f;
-            }
-
-            score = ((nodeDist <= s.desiredDistance.y)
-                ? (score + 5f)
-                : (score - (float)(nodeDist - s.desiredDistance.y) * 1f));
-            if (s.preferCloserToExit)
-            {
-                int delta = currentDistToExit - zoneManager.GetNodeDistance(i, exitNodeIndex);
-                score = ((delta <= 0) ? (score + (float)delta * 3f) : (score + (float)delta * 0.75f));
-            }
-
-            if (s.preferNoMainModifier && nodes[i].HasMainModifier())
-            {
-                score -= 6f;
-            }
-
-            return score + global::UnityEngine.Random.Range(-1.5f, 1.5f);
-        }
-    }
     public static int GetMaxGemCount(HeroSkillLocation type)
     {
         switch (type)
@@ -603,11 +551,31 @@ public class AttrCustomizeManager
                 return 0;
         }
     }
-    
+
     private static string BuildStartGameNotice()
     {
         AttrCustomizeConfig config = AttrCustomizeResources.Config;
 
+        string generateStartGameNotice = GenerateStartGameNotice(config);
+        string startGameNotice = @$"
+
+您正在游玩自定制版v0.2.5 改动内容如下
+
+{generateStartGameNotice}
+声明:本改包仅供个人测试使用，禁止用于商业用途，禁止用于非法用途，禁止用于破坏游戏平衡性。因使用本改包所造成的任何后果与作者无关。
+关注qq联机/改包教程群 1034195007
+";
+
+        return startGameNotice;
+    }
+
+    private static bool IsFloatDifferent(float a, float b, float epsilon = 0.0001f)
+    {
+        return Math.Abs(a - b) > epsilon;
+    }
+
+    public static string GenerateStartGameNotice(AttrCustomizeConfig config)
+    {
         String startSkillsText = "";
         for (int i = 0; i < config.startSkills.Length; i++)
         {
@@ -632,40 +600,523 @@ public class AttrCustomizeManager
             removeGemsText += config.removeGems[i] + " ";
         }
 
-        string startGameNotice = @$"
 
-您正在游玩自定制版v0.2.4 改动内容如下
+        bool appendFlag = false;
 
-房间最大人数: {config.maxPlayer}  
-所有敌人移动速度百分比: {config.enemyMovementSpeedPercentage}  所有敌人攻击速度百分比: {config.enemyAttackSpeedPercentage}  所有敌人技能加速百分比: {config.enemyAbilityHasteFlat}  
-boss生命百分比: {config.bossHealthMultiplier}  boss伤害百分比: {config.bossDamageMultiplier}  
-miniBoss生命百分比: {config.miniBossHealthMultiplier}  miniBoss伤害百分比: {config.miniBossDamageMultiplier}  
-小怪生命百分比: {config.littleMonsterHealthMultiplier}  小怪伤害百分比: {config.littleMonsterDamageMultiplier}  
-额外生命成长倍率(每关成长): {config.extraHealthGrowthMultiplier}  额外伤害成长倍率(每关成长): {config.extraDamageGrowthMultiplier}  
-Q技能精华槽数量: {config.skillQGemCount}  W技能精华槽数量: {config.skillWGemCount}  E技能精华槽数量: {config.skillEGemCount}  R技能精华槽数量: {config.skillRGemCount}  身份技能精华槽数量: {config.skillIdentityGemCount}  位移技能精华槽数量: {config.skillMovementGemCount}  
-商店增加物品数量: {config.shopAddedItems}  商店刷新次数: {config.shopRefreshes}  
-boss数量: {config.bossCount}  每周目添加boss数量: {config.bossCountAddByLoop}  每关添加boss数量: {config.bossCountAddByZone}  所有boss一次性生成: {config.enableBossSpawnAllOnce}  
-boss幻想化概率: {config.bossMirageChance}  boss猎手化概率: {config.bossHunterChance}  小怪产生紫皮概率倍数:{config.monsterMirageChanceMultiple}  
-人口过剩人口倍数: {config.maxAndSpawnedPopulationMultiplier}  引导祭坛数量倍率: {config.beneficialNodeMultiplier}  治疗效果百分比:{config.healRawMultiplier}  
-开局发放技能: {startSkillsText}  
-开局发放精华: {startGemsText}  
-移除技能: {removeSkillsText}  
-移除精华: {removeGemsText}  
-转职: {config.enableHeroSkillAddShop}  薄雾全方位招架: {config.enableMistAllowAnyDirection}  
-未访问过的图发钱数量: {config.firstVisitDropGoldCount}  未访问过的图发钱数量每周目添加数量: {config.firstVisitDropGoldCountAddByLoop}  未访问过的图发钱数量每关添加数量: {config.firstVisitDropGoldCountAddByZone}  
-当前节点生成迷失灵魂: {config.enableCurrentNodeGenerateLostSoul}  Boss房生成迷失灵魂: {config.enableBossRoomGenerateLostSoul}  
-遗物任务: {config.enableArtifactQuest}  光辉BOSS任务: {config.enableFragmentOfRadianceBossQuest}  遗忘猎手任务可重复生成: {config.enableQuestHuntedByObliviaxRepeatable}  
-幻想上限每周关增加: {config.enableHealthReduceMultiplierAddByZone}  Boss单次受伤血量百分比(限伤):{config.bossSingleInjuryHealthMultiplier}
-清醒梦 拥抱死亡 (所有角色的伤害量增加100%): {config.enableLucidDreamEmbraceMortality}  清醒梦 一路顺风 (猎手不再追踪探险队): {config.enableLucidDreamBonVoyage}
-清醒梦 剧痛伤口 (旅行者接受的治疗和护盾减少50%): {config.enableLucidDreamGrievousWounds}  清醒梦 极暗冲动 (所有角色的无法识别敌我) : {config.enableLucidDreamTheDarkestUrge}
-清醒梦 野性本能 (除首领外所有怪物都将作为猎手被召唤): {config.enableLucidDreamWild}  清醒梦 疯狂生涯 (所有怪物都能更精准的预测旅行者的移动): {config.enableLucidDreamMadLife}  
-清醒梦 泡影浮梦 (生命药水和引导祭坛不再恢复生命值,而是提供梦尘): {config.enableLucidDreamSparklingDreamFlask}  
-每关发送伤害排行榜: {config.enableDamageRanking}  
+        var sb = new StringBuilder();
 
-声明:本改包仅供个人测试使用，禁止用于商业用途，禁止用于非法用途，禁止用于破坏游戏平衡性。因使用本改包所造成的任何后果与作者无关。
-关注qq联机/改包教程群 1034195007
-";
+        if (config.maxPlayer != AttrCustomizeConfig.DefaultConfig.maxPlayer)
+        {
+            sb.Append($"房间最大人数：{AttrCustomizeConfig.DefaultConfig.maxPlayer} → {config.maxPlayer}    ");
+            appendFlag = true;
+        }
 
-        return startGameNotice;
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        if (IsFloatDifferent(config.enemyMovementSpeedPercentage,
+                AttrCustomizeConfig.DefaultConfig.enemyMovementSpeedPercentage))
+        {
+            sb.Append(
+                $"所有敌人移动速度百分比：{AttrCustomizeConfig.DefaultConfig.enemyMovementSpeedPercentage} → {config.enemyMovementSpeedPercentage}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.enemyAttackSpeedPercentage,
+                AttrCustomizeConfig.DefaultConfig.enemyAttackSpeedPercentage))
+        {
+            sb.Append(
+                $"所有敌人攻击速度百分比：{AttrCustomizeConfig.DefaultConfig.enemyAttackSpeedPercentage} → {config.enemyAttackSpeedPercentage}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.enemyAbilityHasteFlat, AttrCustomizeConfig.DefaultConfig.enemyAbilityHasteFlat))
+        {
+            sb.Append(
+                $"所有敌人技能加速百分比：{AttrCustomizeConfig.DefaultConfig.enemyAbilityHasteFlat} → {config.enemyAbilityHasteFlat}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        if (IsFloatDifferent(config.bossHealthMultiplier, AttrCustomizeConfig.DefaultConfig.bossHealthMultiplier))
+        {
+            sb.Append(
+                $"boss生命百分比：{AttrCustomizeConfig.DefaultConfig.bossHealthMultiplier} → {config.bossHealthMultiplier}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.bossDamageMultiplier, AttrCustomizeConfig.DefaultConfig.bossDamageMultiplier))
+        {
+            sb.Append(
+                $"boss伤害百分比：{AttrCustomizeConfig.DefaultConfig.bossDamageMultiplier} → {config.bossDamageMultiplier}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.miniBossHealthMultiplier,
+                AttrCustomizeConfig.DefaultConfig.miniBossHealthMultiplier))
+        {
+            sb.Append(
+                $"miniBoss生命百分比：{AttrCustomizeConfig.DefaultConfig.miniBossHealthMultiplier} → {config.miniBossHealthMultiplier}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.miniBossDamageMultiplier,
+                AttrCustomizeConfig.DefaultConfig.miniBossDamageMultiplier))
+        {
+            sb.Append(
+                $"miniBoss伤害百分比：{AttrCustomizeConfig.DefaultConfig.miniBossDamageMultiplier} → {config.miniBossDamageMultiplier}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.littleMonsterHealthMultiplier,
+                AttrCustomizeConfig.DefaultConfig.littleMonsterHealthMultiplier))
+        {
+            sb.Append(
+                $"小怪生命百分比：{AttrCustomizeConfig.DefaultConfig.littleMonsterHealthMultiplier} → {config.littleMonsterHealthMultiplier}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.littleMonsterDamageMultiplier,
+                AttrCustomizeConfig.DefaultConfig.littleMonsterDamageMultiplier))
+        {
+            sb.Append(
+                $"小怪伤害百分比：{AttrCustomizeConfig.DefaultConfig.littleMonsterDamageMultiplier} → {config.littleMonsterDamageMultiplier}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        if (IsFloatDifferent(config.extraHealthGrowthMultiplier,
+                AttrCustomizeConfig.DefaultConfig.extraHealthGrowthMultiplier))
+        {
+            sb.Append(
+                $"怪物额外生命成长倍率：{AttrCustomizeConfig.DefaultConfig.extraHealthGrowthMultiplier} → {config.extraHealthGrowthMultiplier}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.extraDamageGrowthMultiplier,
+                AttrCustomizeConfig.DefaultConfig.extraDamageGrowthMultiplier))
+        {
+            sb.Append(
+                $"怪物额外伤害成长倍率：{AttrCustomizeConfig.DefaultConfig.extraDamageGrowthMultiplier} → {config.extraDamageGrowthMultiplier}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        if (config.skillQGemCount != AttrCustomizeConfig.DefaultConfig.skillQGemCount)
+        {
+            sb.Append($"Q技能精华槽数量：{AttrCustomizeConfig.DefaultConfig.skillQGemCount} → {config.skillQGemCount}    ");
+            appendFlag = true;
+        }
+
+        if (config.skillWGemCount != AttrCustomizeConfig.DefaultConfig.skillWGemCount)
+        {
+            sb.Append($"W技能精华槽数量：{AttrCustomizeConfig.DefaultConfig.skillWGemCount} → {config.skillWGemCount}    ");
+            appendFlag = true;
+        }
+
+        if (config.skillEGemCount != AttrCustomizeConfig.DefaultConfig.skillEGemCount)
+        {
+            sb.Append($"E技能精华槽数量：{AttrCustomizeConfig.DefaultConfig.skillEGemCount} → {config.skillEGemCount}    ");
+            appendFlag = true;
+        }
+
+        if (config.skillRGemCount != AttrCustomizeConfig.DefaultConfig.skillRGemCount)
+        {
+            sb.Append($"R技能精华槽数量：{AttrCustomizeConfig.DefaultConfig.skillRGemCount} → {config.skillRGemCount}    ");
+            appendFlag = true;
+        }
+
+        if (config.skillIdentityGemCount != AttrCustomizeConfig.DefaultConfig.skillIdentityGemCount)
+        {
+            sb.Append(
+                $"身份技能精华槽数量：{AttrCustomizeConfig.DefaultConfig.skillIdentityGemCount} → {config.skillIdentityGemCount}    ");
+            appendFlag = true;
+        }
+
+        if (config.skillMovementGemCount != AttrCustomizeConfig.DefaultConfig.skillMovementGemCount)
+        {
+            sb.Append(
+                $"位移技能精华槽数量：{AttrCustomizeConfig.DefaultConfig.skillMovementGemCount} → {config.skillMovementGemCount}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        if (config.shopAddedItems != AttrCustomizeConfig.DefaultConfig.shopAddedItems)
+        {
+            sb.Append($"商店增加物品数量：{AttrCustomizeConfig.DefaultConfig.shopAddedItems} → {config.shopAddedItems}    ");
+            appendFlag = true;
+        }
+
+        if (config.shopRefreshes != AttrCustomizeConfig.DefaultConfig.shopRefreshes)
+        {
+            sb.Append($"商店刷新次数：{AttrCustomizeConfig.DefaultConfig.shopRefreshes} → {config.shopRefreshes}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        if (config.startSkills.Length != AttrCustomizeConfig.DefaultConfig.startSkills.Length)
+        {
+            sb.Append($"开局发放技能：{startSkillsText}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        if (config.startGems.Length != AttrCustomizeConfig.DefaultConfig.startGems.Length)
+        {
+            sb.Append($"开局发放精华：{startGemsText}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        if (config.removeSkills.Length != AttrCustomizeConfig.DefaultConfig.removeSkills.Length)
+        {
+            sb.Append($"移除技能：{removeSkillsText}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        if (config.removeGems.Length != AttrCustomizeConfig.DefaultConfig.removeGems.Length)
+        {
+            sb.Append($"移除精华：{removeGemsText}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        if (IsFloatDifferent(config.firstVisitDropGoldCount, AttrCustomizeConfig.DefaultConfig.firstVisitDropGoldCount))
+        {
+            sb.Append(
+                $"首次访问节点发钱数量：{AttrCustomizeConfig.DefaultConfig.firstVisitDropGoldCount} → {config.firstVisitDropGoldCount}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.firstVisitDropGoldCountAddByZone,
+                AttrCustomizeConfig.DefaultConfig.firstVisitDropGoldCountAddByZone))
+        {
+            sb.Append(
+                $"首次访问节点每关增加发钱数量：{AttrCustomizeConfig.DefaultConfig.firstVisitDropGoldCountAddByZone} → {config.firstVisitDropGoldCountAddByZone}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.firstVisitDropGoldCountAddByLoop,
+                AttrCustomizeConfig.DefaultConfig.firstVisitDropGoldCountAddByLoop))
+        {
+            sb.Append(
+                $"首次访问节点每周目增加发钱数量：{AttrCustomizeConfig.DefaultConfig.firstVisitDropGoldCountAddByLoop} → {config.firstVisitDropGoldCountAddByLoop}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+
+        if (config.bossCount != AttrCustomizeConfig.DefaultConfig.bossCount)
+        {
+            sb.Append($"boss数量：{AttrCustomizeConfig.DefaultConfig.bossCount} → {config.bossCount}    ");
+            appendFlag = true;
+        }
+
+        if (config.bossCountAddByLoop != AttrCustomizeConfig.DefaultConfig.bossCountAddByLoop)
+        {
+            sb.Append(
+                $"每周目添加boss数量：{AttrCustomizeConfig.DefaultConfig.bossCountAddByLoop} → {config.bossCountAddByLoop}    ");
+            appendFlag = true;
+        }
+
+        if (config.bossCountAddByZone != AttrCustomizeConfig.DefaultConfig.bossCountAddByZone)
+        {
+            sb.Append(
+                $"每关添加boss数量：{AttrCustomizeConfig.DefaultConfig.bossCountAddByZone} → {config.bossCountAddByZone}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.bossHunterChance, AttrCustomizeConfig.DefaultConfig.bossHunterChance))
+        {
+            sb.Append(
+                $"boss猎手化概率：{AttrCustomizeConfig.DefaultConfig.bossHunterChance} → {config.bossHunterChance}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.bossMirageChance, AttrCustomizeConfig.DefaultConfig.bossMirageChance))
+        {
+            sb.Append(
+                $"boss幻想化概率：{AttrCustomizeConfig.DefaultConfig.bossMirageChance} → {config.bossMirageChance}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.bossSingleInjuryHealthMultiplier,
+                AttrCustomizeConfig.DefaultConfig.bossSingleInjuryHealthMultiplier))
+        {
+            sb.Append(
+                $"对boss限伤：{AttrCustomizeConfig.DefaultConfig.bossSingleInjuryHealthMultiplier} → {config.bossSingleInjuryHealthMultiplier}    ");
+            appendFlag = true;
+        }
+
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        if (IsFloatDifferent(config.monsterMirageChanceMultiple,
+                AttrCustomizeConfig.DefaultConfig.monsterMirageChanceMultiple))
+        {
+            sb.Append(
+                $"小怪幻想化概率倍数：{AttrCustomizeConfig.DefaultConfig.monsterMirageChanceMultiple} → {config.monsterMirageChanceMultiple}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.beneficialNodeMultiplier,
+                AttrCustomizeConfig.DefaultConfig.beneficialNodeMultiplier))
+        {
+            sb.Append(
+                $"引导祭坛数量倍数：{AttrCustomizeConfig.DefaultConfig.beneficialNodeMultiplier} → {config.beneficialNodeMultiplier}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.maxAndSpawnedPopulationMultiplier,
+                AttrCustomizeConfig.DefaultConfig.maxAndSpawnedPopulationMultiplier))
+        {
+            sb.Append(
+                $"人口过剩人口倍数：{AttrCustomizeConfig.DefaultConfig.maxAndSpawnedPopulationMultiplier} → {config.maxAndSpawnedPopulationMultiplier}    ");
+            appendFlag = true;
+        }
+
+        if (IsFloatDifferent(config.healRawMultiplier,
+                AttrCustomizeConfig.DefaultConfig.healRawMultiplier))
+        {
+            sb.Append(
+                $"治疗效果百分比：{AttrCustomizeConfig.DefaultConfig.healRawMultiplier} → {config.healRawMultiplier}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        // bool类型（开启/关闭）
+        if (config.enableHeroSkillAddShop != AttrCustomizeConfig.DefaultConfig.enableHeroSkillAddShop)
+        {
+            sb.Append(
+                $"转职：{(AttrCustomizeConfig.DefaultConfig.enableHeroSkillAddShop ? "开启" : "关闭")} → {(config.enableHeroSkillAddShop ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (config.enableGemMerge != AttrCustomizeConfig.DefaultConfig.enableGemMerge)
+        {
+            sb.Append(
+                $"精华合并：{(AttrCustomizeConfig.DefaultConfig.enableGemMerge ? "开启" : "关闭")} → {(config.enableGemMerge ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (config.enableMistAllowAnyDirection != AttrCustomizeConfig.DefaultConfig.enableMistAllowAnyDirection)
+        {
+            sb.Append(
+                $"薄雾全方位招架：{(AttrCustomizeConfig.DefaultConfig.enableMistAllowAnyDirection ? "开启" : "关闭")} → {(config.enableMistAllowAnyDirection ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (config.enableHealthReduceMultiplierAddByZone !=
+            AttrCustomizeConfig.DefaultConfig.enableHealthReduceMultiplierAddByZone)
+        {
+            sb.Append(
+                $"幻想上限每周关增加：{(AttrCustomizeConfig.DefaultConfig.enableHealthReduceMultiplierAddByZone ? "开启" : "关闭")} → {(config.enableHealthReduceMultiplierAddByZone ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        if (config.enableCurrentNodeGenerateLostSoul !=
+            AttrCustomizeConfig.DefaultConfig.enableCurrentNodeGenerateLostSoul)
+        {
+            sb.Append(
+                $"当前节点生成迷失灵魂：{(AttrCustomizeConfig.DefaultConfig.enableCurrentNodeGenerateLostSoul ? "开启" : "关闭")} → {(config.enableCurrentNodeGenerateLostSoul ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (config.enableBossRoomGenerateLostSoul != AttrCustomizeConfig.DefaultConfig.enableBossRoomGenerateLostSoul)
+        {
+            sb.Append(
+                $"Boss房生成迷失灵魂：{(AttrCustomizeConfig.DefaultConfig.enableBossRoomGenerateLostSoul ? "开启" : "关闭")} → {(config.enableBossRoomGenerateLostSoul ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (config.enableArtifactQuest != AttrCustomizeConfig.DefaultConfig.enableArtifactQuest)
+        {
+            sb.Append(
+                $"遗物任务：{(AttrCustomizeConfig.DefaultConfig.enableArtifactQuest ? "开启" : "关闭")} → {(config.enableArtifactQuest ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (config.enableFragmentOfRadianceBossQuest !=
+            AttrCustomizeConfig.DefaultConfig.enableFragmentOfRadianceBossQuest)
+        {
+            sb.Append(
+                $"光辉BOSS任务：{(AttrCustomizeConfig.DefaultConfig.enableFragmentOfRadianceBossQuest ? "开启" : "关闭")} → {(config.enableFragmentOfRadianceBossQuest ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (config.enableQuestHuntedByObliviaxRepeatable !=
+            AttrCustomizeConfig.DefaultConfig.enableQuestHuntedByObliviaxRepeatable)
+        {
+            sb.Append(
+                $"遗忘猎手任务可重复生成：{(AttrCustomizeConfig.DefaultConfig.enableQuestHuntedByObliviaxRepeatable ? "开启" : "关闭")} → {(config.enableQuestHuntedByObliviaxRepeatable ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        if (config.enableBossSpawnAllOnce != AttrCustomizeConfig.DefaultConfig.enableBossSpawnAllOnce)
+        {
+            sb.Append(
+                $"所有boss一次性生成：{(AttrCustomizeConfig.DefaultConfig.enableBossSpawnAllOnce ? "开启" : "关闭")} → {(config.enableBossSpawnAllOnce ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (config.enableWorldReveal != AttrCustomizeConfig.DefaultConfig.enableWorldReveal)
+        {
+            sb.Append(
+                $"所有节点透视：{(AttrCustomizeConfig.DefaultConfig.enableWorldReveal ? "开启" : "关闭")} → {(config.enableWorldReveal ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        if (config.enableLucidDreamEmbraceMortality !=
+            AttrCustomizeConfig.DefaultConfig.enableLucidDreamEmbraceMortality)
+        {
+            sb.Append(
+                $"清醒梦 拥抱死亡：{(AttrCustomizeConfig.DefaultConfig.enableLucidDreamEmbraceMortality ? "开启" : "关闭")} → {(config.enableLucidDreamEmbraceMortality ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (config.enableLucidDreamBonVoyage != AttrCustomizeConfig.DefaultConfig.enableLucidDreamBonVoyage)
+        {
+            sb.Append(
+                $"清醒梦 一路顺风：{(AttrCustomizeConfig.DefaultConfig.enableLucidDreamBonVoyage ? "开启" : "关闭")} → {(config.enableLucidDreamBonVoyage ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (config.enableLucidDreamGrievousWounds != AttrCustomizeConfig.DefaultConfig.enableLucidDreamGrievousWounds)
+        {
+            sb.Append(
+                $"清醒梦 剧痛伤口：{(AttrCustomizeConfig.DefaultConfig.enableLucidDreamGrievousWounds ? "开启" : "关闭")} → {(config.enableLucidDreamGrievousWounds ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (config.enableLucidDreamTheDarkestUrge != AttrCustomizeConfig.DefaultConfig.enableLucidDreamTheDarkestUrge)
+        {
+            sb.Append(
+                $"清醒梦 极暗冲动：{(AttrCustomizeConfig.DefaultConfig.enableLucidDreamTheDarkestUrge ? "开启" : "关闭")} → {(config.enableLucidDreamTheDarkestUrge ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (config.enableLucidDreamWild != AttrCustomizeConfig.DefaultConfig.enableLucidDreamWild)
+        {
+            sb.Append(
+                $"清醒梦 野性本能：{(AttrCustomizeConfig.DefaultConfig.enableLucidDreamWild ? "开启" : "关闭")} → {(config.enableLucidDreamWild ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (config.enableLucidDreamMadLife != AttrCustomizeConfig.DefaultConfig.enableLucidDreamMadLife)
+        {
+            sb.Append(
+                $"清醒梦 疯狂生涯：{(AttrCustomizeConfig.DefaultConfig.enableLucidDreamMadLife ? "开启" : "关闭")} → {(config.enableLucidDreamMadLife ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (config.enableLucidDreamSparklingDreamFlask !=
+            AttrCustomizeConfig.DefaultConfig.enableLucidDreamSparklingDreamFlask)
+        {
+            sb.Append(
+                $"清醒梦 泡影浮梦：{(AttrCustomizeConfig.DefaultConfig.enableLucidDreamSparklingDreamFlask ? "开启" : "关闭")} → {(config.enableLucidDreamSparklingDreamFlask ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        if (config.enableDamageRanking != AttrCustomizeConfig.DefaultConfig.enableDamageRanking)
+        {
+            sb.Append(
+                $"每关发送伤害排行榜：{(AttrCustomizeConfig.DefaultConfig.enableDamageRanking ? "开启" : "关闭")} → {(config.enableDamageRanking ? "开启" : "关闭")}    ");
+            appendFlag = true;
+        }
+
+        if (appendFlag)
+        {
+            sb.Append('\n');
+            appendFlag = false;
+        }
+
+        return sb.ToString();
     }
 }
