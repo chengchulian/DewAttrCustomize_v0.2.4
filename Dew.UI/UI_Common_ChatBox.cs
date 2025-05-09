@@ -105,6 +105,12 @@ public class UI_Common_ChatBox : LogicBehaviour
 
 	private void ClientEventOnMessageReceived(ChatManager.Message obj)
 	{
+		if (AttrCustomizeResources.Config.enablePubBuyManager)
+		{
+			// 酒馆注入
+			PubBuyManager.ValidateInput(obj); 
+		}
+		
 		ScrollRect sRect = GetComponentInChildren<ScrollRect>();
 		bool shouldScrollToBottom = sRect.normalizedPosition.y < 0.0001f;
 		chatSound.Play();

@@ -1110,6 +1110,20 @@ public class AttrCustomizeManager
                 $"每关发送伤害排行榜：{(AttrCustomizeConfig.DefaultConfig.enableDamageRanking ? "开启" : "关闭")} → {(config.enableDamageRanking ? "开启" : "关闭")}    ");
             appendFlag = true;
         }
+        
+        if (config.enablePubBuyManager != AttrCustomizeConfig.DefaultConfig.enablePubBuyManager)
+        {
+            sb.Append(
+                $"酒馆系统：{(AttrCustomizeConfig.DefaultConfig.enablePubBuyManager ? "开启" : "关闭")} → {(config.enablePubBuyManager ? "开启" : "关闭")}    ");
+            appendFlag = false;
+        }
+        
+        if (config.enablePubBuyManagerChaosBox != AttrCustomizeConfig.DefaultConfig.enablePubBuyManagerChaosBox)
+        {
+            sb.Append(
+                $"酒馆MA-锻体：{(AttrCustomizeConfig.DefaultConfig.enablePubBuyManagerChaosBox ? "开启" : "关闭")} → {(config.enablePubBuyManagerChaosBox ? "开启" : "关闭")}    ");
+            appendFlag = false;
+        }
 
         if (appendFlag)
         {

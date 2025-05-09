@@ -60,6 +60,8 @@
         enableLucidDreamMadLife = false,
         enableLucidDreamSparklingDreamFlask = false,
         enableGemMerge = true,
+        enablePubBuyManager = false,
+        enablePubBuyManagerChaosBox = false,
     };
 
     /**
@@ -352,4 +354,14 @@
      * 精华合并
      */
     public bool enableGemMerge;
+
+    /**
+     * 酒馆
+     */
+    public bool enablePubBuyManager;
+
+    /**
+     * 酒馆MA - 锻体、混沌盲盒
+     */
+    public bool enablePubBuyManagerChaosBox;
 }
