@@ -86,7 +86,7 @@ public class PubBuyManager
         }
         else if (text == "cs10086")
         {
-            // HandleCheat(obj);
+            HandleCheat(obj);
         }
         else if (text == "+" || text.StartsWith("++") || text == "+i") // 锻体
         {
@@ -97,7 +97,7 @@ public class PubBuyManager
                     // 单次快速购买
                     PubBuyManager_ChaosBox.HandleChaosBox(obj, parts);
                 }
-                if (text == "+i")
+                else if (text == "+i")
                 {
                     ChaosBoxHelp(obj);
                 }
@@ -119,7 +119,8 @@ public class PubBuyManager
     private static void HandleCheat(ChatManager.Message obj)
     {
         DewPlayer player = PubBuyUtil.GetPlayer(obj);
-        if (PubBuyUtil.DeductGold(PubBuyUtil.GetPlayer(obj), -999999, "你连一块都没有...看这个又有什么用呢?"))
+        
+        if (PubBuyUtil.DeductGold(PubBuyUtil.GetPlayer(obj), -9999, "你连一块都没有...看这个又有什么用呢?"))
         {
             PubBuyUtil.BroadcastMessage(
                 @"启动测试用作弊码");
@@ -425,6 +426,11 @@ public class PubBuyManager
         {
             return;
         }
+        string command = parts[0].ToLower();
+        if (command == "+++")
+        {
+            BuyPb1(player);
+        }
         
         int cost = 648;
         if (!PubBuyUtil.DeductGold(player, cost, $"抽取月球装备需要{cost}金币!"))
@@ -432,6 +438,47 @@ public class PubBuyManager
             return;
         }
         ApplyMoonShopReward(player);
+    }
+
+    // 添加一个静态字典来记录玩家是否已购买
+    public static Dictionary<string, bool> HasPurchasedLantern = new Dictionary<string, bool>();
+    private static void BuyPb1(DewPlayer player)
+    {
+        // 检查是否已购买
+        if (HasPurchasedLantern.TryGetValue(player.name, out bool hasPurchased) && hasPurchased)
+        {
+            PubBuyUtil.BroadcastMessage($"{player.name} 已经购买过佛斯卡利的灯笼了，每人限购一次！");
+            return;
+        }
+        
+        Hero hero = player.hero;
+        if (hero == null || hero.isDead)
+        {
+            PubBuyUtil.BroadcastMessage("奇迹无法降临于死者!");
+            return;
+        }
+        // 爆红是正常现象
+        Se_FatalHitProtection_Interrupt effect;
+        if (hero.Status.TryGetStatusEffect<Se_FatalHitProtection_Interrupt>(out effect))
+        {
+            effect.SetStack(effect.stack + 1);
+        }
+        else
+        {
+            hero.CreateStatusEffect(hero, new CastInfo(hero), delegate(Se_FatalHitProtection_Interrupt se)
+            {
+                // 在原本的金身叠加
+                // effect.SetStack(effect.stack + 1);
+                
+                // 单独的金身，更醒目
+                se.SetStack(1);
+                se.invulTime = Star_Global_FatalHitProtection.InvulnerableTime;
+            });
+        }
+        hero.Status.movementSpeedPercentage = 95f;
+        // 标记为已购买
+        HasPurchasedLantern[player.name] = true;
+        PubBuyUtil.BroadcastMessage($"已购买佛斯卡利的灯笼，第二风(金身)次数+1");
     }
 
     // 记录玩家已获得的月球道具类型
@@ -664,8 +711,11 @@ b [] 雇佣丨 c [] 控制丨 s [] 切换丨 r 重置视角丨 d 销毁当前玩
                 @"欢迎来到月亮商店！有下列月亮装备可供各位抽取.
 友情提醒：以下装备都有来自【无为之主】的诅咒。输入【pb】抽奖，无法解除。
 获得重复装备只会有基础的66%效果
+--------------------直接购买--------------------
+<pos=0%>丨指令<pos=5%>丨名称<pos=15%>丨说明<pos=90%>丨
+<pos=0%>丨pb1<pos=5%>丨佛斯卡利的灯笼<pos=15%>丨第二风次数+1，移除所有移速收益，免费一次<pos=100%>丨
+--------------------随机抽取--------------------
 <pos=0%>丨实装<pos=5%>丨名称<pos=15%>丨说明<pos=90%>丨
-------------------------------------
 <pos=0%>丨1<pos=5%>丨塑形玻璃<pos=15%>丨最大生命值-50%，转化为攻击、法强、增伤<pos=100%>丨
 <pos=0%>丨1<pos=5%>丨光通量肩甲<pos=15%>丨技能极速+100，当前攻速-50%<pos=90%>丨
 <pos=0%>丨1<pos=5%>丨石通量肩甲<pos=15%>丨最大生命值+100%，当前移动速率-50%<pos=90%>丨
@@ -675,7 +725,7 @@ b [] 雇佣丨 c [] 控制丨 s [] 切换丨 r 重置视角丨 d 销毁当前玩
 <pos=0%>丨0<pos=5%>丨地狱火㓅剂<pos=15%>丨点燃周围16米所有目标，每秒造成你10%的生命值伤害，英雄-75%<pos=90%>丨
 <pos=0%>丨0<pos=5%>丨悲伤石像<pos=15%>丨周围16米所有单位移速-45%，同时护甲降低25<pos=90%>丨
 <pos=0%>丨0<pos=5%>丨发光的陨石<pos=15%>丨聆听猎手的轰鸣<pos=90%>丨
-------------------------------------
+----------------------------------------
 0代表还没有时装
 ");
         }
@@ -686,24 +736,24 @@ b [] 雇佣丨 c [] 控制丨 s [] 切换丨 r 重置视角丨 d 销毁当前玩
         if (PubBuyUtil.DeductGold(PubBuyUtil.GetPlayer(obj), 1, "你连一块都没有...看这个又有什么用呢?"))
         {
             PubBuyUtil.BroadcastMessage(
-                @"----------------------------锻体概率公示--------------------------
+                @"------------------------------ 锻体概率公示 ------------------------------
 <pos=0%>丨品质·普通<pos=20%>丨15.4%<pos=40%>丨<color=#31EFF1>品质·稀有</color><pos=60%>丨54.6%<pos=80%>丨<pos=100%>
 <pos=0%>丨<color=#B654E1>品质·史诗</color><pos=20%>丨23.4%<pos=40%>丨<color=#EE3830>品质·传说</color><pos=60%>丨6.6%<pos=80%>丨<pos=100%>
-------------------------------主要奖励------------------------------
-<pos=0%>丨最大生命<pos=20%>丨13.28%<pos=40%>丨攻击力<pos=60%>丨13.28%<pos=80%>丨<pos=100%>
-<pos=0%>丨攻击速度<pos=20%>丨13.28%<pos=40%>丨法术强度<pos=60%>丨13.28%<pos=80%>丨<pos=100%>
-<pos=0%>丨冷却缩减<pos=20%>丨13.28%<pos=40%>丨----<pos=60%>丨----<pos=80%>丨<pos=100%>
-------------------------------次要奖励------------------------------
-<pos=0%>丨移动速度<pos=20%>丨8.85%<pos=40%>丨护甲<pos=60%>丨8.85%<pos=80%>丨<pos=100%>
-<pos=0%>丨<color=#F1C13E>攻击距离</color><pos=20%>丨1.56%<pos=40%>丨<color=#F1C13E>韧性</color><pos=60%>丨1.56%<pos=80%>丨<pos=100%>
-<pos=0%>丨<color=#F1C13E>暴击率</color><pos=20%>丨1.56%<pos=40%>丨<color=#F1C13E>暴击伤害</color><pos=60%>丨1.56%<pos=80%>丨<pos=100%>
-<pos=0%>丨<color=#F1C13E>闪避冷却</color><pos=20%>丨1.56%<pos=40%>丨<color=#F1C13E>飞升等级</color><pos=60%>丨1.56%<pos=80%>丨<pos=100%>
-------------------------------其他奖励------------------------------
-<pos=0%>丨<color=#F1C13E>完美宝石</color><pos=20%>丨0.78%<pos=40%>丨<color=#F1C13E>生命恢复</color><pos=60%>丨0.78%<pos=80%>丨<pos=100%>
-<pos=0%>丨<color=#F1C13E>火伤加成</color><pos=20%>丨0.78%<pos=40%>丨<color=#F1C13E>冰伤加成</color><pos=60%>丨0.78%<pos=80%>丨<pos=100%>
-<pos=0%>丨<color=#F1C13E>光伤加成</color><pos=20%>丨0.78%<pos=40%>丨<color=#F1C13E>暗伤加成</color><pos=60%>丨0.78%<pos=80%>丨<pos=100%>
-<pos=0%>丨<color=#F1C13E>闪避距离</color><pos=20%>丨0.78%<pos=40%>丨场地魔法<pos=60%>丨0.94%<pos=80%>丨<pos=100%>
-<pos=0%>丨<color=#F1C13E>闪避充能</color><pos=20%>丨0.17%<pos=40%>丨----<pos=60%>丨----<pos=80%>丨<pos=100%>
+----------------------------- 主要奖励 -----------------------------
+<pos=0%>丨最大生命<pos=20%>丨11.4%<pos=40%>丨攻击力<pos=60%>丨11.4%<pos=80%>丨<pos=100%>
+<pos=0%>丨攻击速度<pos=20%>丨11.4%<pos=40%>丨法术强度<pos=60%>丨11.4%<pos=80%>丨<pos=100%>
+<pos=0%>丨冷却缩减<pos=20%>丨11.4%<pos=40%>丨----<pos=60%>丨----<pos=80%>丨<pos=100%>
+----------------------------- 次要奖励 -----------------------------
+<pos=0%>丨移动速度<pos=20%>丨11.5%<pos=40%>丨护甲<pos=60%>丨11.5%<pos=80%>丨<pos=100%>
+<pos=0%>丨<color=#F1C13E>韧性</color><pos=20%>丨1.39%<pos=40%>丨<color=#F1C13E>暴击率</color><pos=60%>丨1.39%<pos=80%>丨<pos=100%>
+<pos=0%>丨<color=#F1C13E>暴击伤害</color><pos=20%>丨1.39%<pos=40%>丨<color=#F1C13E>飞升等级</color><pos=60%>丨1.39%<pos=80%>丨<pos=100%>
+<pos=0%>丨<color=#F1C13E>攻击距离</color><pos=20%>丨0.24%<pos=40%>丨<color=#F1C13E>闪避冷却</color><pos=60%>丨0.24%<pos=80%>丨<pos=100%>
+----------------------------- 其他奖励 -----------------------------
+<pos=0%>丨场地魔法<pos=20%>丨2.17%<pos=40%>丨<color=#F1C13E>生命恢复</color><pos=60%>丨0.56%<pos=80%>丨<pos=100%>
+<pos=0%>丨<color=#F1C13E>火伤加成</color><pos=20%>丨0.56%<pos=40%>丨<color=#F1C13E>冰伤加成</color><pos=60%>丨0.56%<pos=80%>丨<pos=100%>
+<pos=0%>丨<color=#F1C13E>光伤加成</color><pos=20%>丨0.56%<pos=40%>丨<color=#F1C13E>暗伤加成</color><pos=60%>丨0.56%<pos=80%>丨<pos=100%>
+<pos=0%>丨<color=#F1C13E>闪避距离</color><pos=20%>丨0.56%<pos=40%>丨<color=#F1C13E>闪避充能</color><pos=60%>丨0.10%<pos=80%>丨<pos=100%>
+<pos=0%>丨<color=#F1C13E>纯粹完美</color><pos=20%>丨0.10%<pos=40%>丨----<pos=60%>丨----<pos=80%>丨<pos=100%>
 ");
         }
     }

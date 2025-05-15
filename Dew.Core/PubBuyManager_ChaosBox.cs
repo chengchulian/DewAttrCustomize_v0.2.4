@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Mirror;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 
 public static class PubBuyManager_ChaosBox
@@ -36,7 +37,7 @@ public static class PubBuyManager_ChaosBox
         Ascension, // 升级
         
         //其他
-        Perfection, // 完美
+        Perfection, // 纯粹完美
         HealthRegen, // 回血
         fireEffectAmp, // 额外火伤
         coldEffectAmp, // 额外冰伤
@@ -45,6 +46,8 @@ public static class PubBuyManager_ChaosBox
         MoveMaxCharges, // 闪避充能
         MoveRange, // 闪避距离
         RoomMagic, // 场地魔法
+        SecondWindStack, // 金身次数
+        // SecondWindTime, // 金身持续时间
     }
     
     private static string GetRarityColor(Rarity rarity)
@@ -59,18 +62,19 @@ public static class PubBuyManager_ChaosBox
         };
     }
     
-    public static Dictionary<string, string> roomModName = new Dictionary<string, string> {
-        {"RoomMod_ArcticTerritory", "卧槽，冰！"},
-        {"RoomMod_AcceleratedTime", "最后再说一遍，时间要开始加速了！"},
-        {"RoomMod_DistantMemories", "那一天，人们想起了。"},
-        {"RoomMod_EngulfedInFlame", "这不比博燃？"},
-        {"RoomMod_GoldEverywhere", "说好模型镀金，你真给我上纯金？"},
-        {"RoomMod_GravityTraining", "坂本式缓动！"},
-        {"RoomMod_LeafPuppies", "有狗！"},
-        {"RoomMod_LingeringAuraOfGuidance", "圣光の诈骗"},
-        {"RoomMod_PureDream", "噗噗！列车出发~"},
-        {"RoomMod_StarCookie", "V你50买星辰饼干"},
-        {"RoomMod_Hunted", "苏醒了,猎杀时刻！"}
+    public static Dictionary<string, (string name, int weight)> roomModName = new Dictionary<string, (string, int)> 
+    {
+        {"RoomMod_ArcticTerritory", ("<color=#EE3830>卧槽，冰！</color>", 2)},
+        {"RoomMod_AcceleratedTime", ("<color=#B654E1>最后再说一遍，时间要开始加速了！</color>", 2)},
+        {"RoomMod_DistantMemories", ("<color=#F1C13E>那一天，人们想起了……</color>", 2)},
+        {"RoomMod_EngulfedInFlame", ("<color=#EE3830>这不比博燃？</color>", 2)},
+        {"RoomMod_GoldEverywhere", ("<color=#F1C13E>说好模型镀金，你真给我上纯金？</color>", 2)},
+        {"RoomMod_GravityTraining", ("<color=#EE3830>坂本式缓动！</color>", 2)},
+        {"RoomMod_LeafPuppies", ("<color=#B654E1>有狗！</color>", 2)},
+        {"RoomMod_LingeringAuraOfGuidance", ("<color=#B654E1>圣光の诈骗</color>", 2)},
+        {"RoomMod_PureDream", ("<color=#B654E1>噗噗！列车出发~</color>", 2)},
+        {"RoomMod_StarCookie", ("<color=#B654E1>V你50买星辰饼干</color>", 2)},
+        {"RoomMod_Hunted", ("<color=#F1C13E>苏醒了,猎杀时刻！</color>", 2)}
     };
     
     //盲盒的价格声明，每周目涨价15.4%
@@ -112,6 +116,11 @@ public static class PubBuyManager_ChaosBox
 
         string command = parts[0].ToLower();
     
+        // 确保命令以"++"开头
+        if (!command.StartsWith("++"))
+        {
+            return;
+        }
         // 情况1: "++x" 购买指定数量
         if (command.Length > 2 && int.TryParse(command.Substring(2), out int specifiedCount))
         {
@@ -127,7 +136,7 @@ public static class PubBuyManager_ChaosBox
             // PubBuyManager_ChaosBox_Test.HandleDogmaTest(player);
         }
         // 情况3: "++" 默认购买1个
-        else
+        else if (command == "++")
         {
             HandleChaosBox(message, new string[] { "+" });
         }
@@ -216,33 +225,40 @@ public static class PubBuyManager_ChaosBox
                 case Rarity.Common: commonCount++; break;
             }
 
-            // 应用混沌奖励并记录
-            MiracleRewardType rewardType = ApplyMiracleReward(player, miracleRarity, false);
+            // 选择奖励类型（不立即应用）
+            MiracleRewardType rewardType = SelectRewardByProbability(miracleRarity);
+            
             
             // 如果是场地魔法且已经触发过，则强制改为其他奖励类型
             if (roomMagicTriggered && rewardType == MiracleRewardType.RoomMagic)
             {
                 // 获取可用的奖励类型列表（排除场地魔法）
-                var availableTypes = GetAvailableRewardTypes(miracleRarity)
+                var availableTypes = GetAllPossibleRewards(miracleRarity)
                     .Where(t => t != MiracleRewardType.RoomMagic)
                     .ToList();
             
                 // 随机选择一个非场地魔法的奖励类型
-                rewardType = availableTypes[UnityEngine.Random.Range(0, availableTypes.Count)];
+                rewardType = availableTypes[Random.Range(0, availableTypes.Count)];
             }
-            else
-            {
-                rewardType = ApplyMiracleReward(player, miracleRarity, false);
             
-                // 如果是场地魔法，标记为已触发
-                if (rewardType == MiracleRewardType.RoomMagic)
-                {
-                    roomMagicTriggered = true;
-                    // 获取对应的场地魔法名称
-                    List<string> roomMods = roomModName.Keys.ToList();
-                    string selectedMod = roomMods[UnityEngine.Random.Range(0, roomMods.Count)];
-                    triggeredRoomMagicName = roomModName[selectedMod];
-                }
+            // 应用最终确定的奖励类型
+            ApplyMiracleReward(player, miracleRarity, false, rewardType);
+            
+            // 应用最终确定的奖励类型
+            var appliedReward = ApplyMiracleReward(player, miracleRarity, false, rewardType);
+            // 更新场地魔法标记和名称
+            if (appliedReward == MiracleRewardType.RoomMagic)
+            {
+                roomMagicTriggered = true;
+                // 获取场地魔法名称
+                var selectedMod = roomModName.Keys.ToList()[Random.Range(0, roomModName.Count)];
+                triggeredRoomMagicName = roomModName[selectedMod].name;
+            }
+            
+            // 更新场地魔法标记
+            if (rewardType == MiracleRewardType.RoomMagic)
+            {
+                roomMagicTriggered = true;
             }
             
             if (rewards.ContainsKey(rewardType))
@@ -278,19 +294,28 @@ public static class PubBuyManager_ChaosBox
                     case Rarity.Common: commonCount++; break;
                 }
 
-                // 应用混沌奖励并记录
-                MiracleRewardType rewardType = ApplyMiracleReward(player, miracleRarity, false);
+                // 选择奖励类型（不立即应用）
+                MiracleRewardType rewardType = SelectRewardByProbability(miracleRarity);
                 
                     // 如果是场地魔法，则强制改为其他奖励类型
-                if (rewardType == MiracleRewardType.RoomMagic)
+                if (roomMagicTriggered && rewardType == MiracleRewardType.RoomMagic) 
                 {
                     // 获取可用的奖励类型列表（排除场地魔法）
-                    var availableTypes = GetAvailableRewardTypes(miracleRarity)
+                    var availableTypes = GetAllPossibleRewards(miracleRarity)
                         .Where(t => t != MiracleRewardType.RoomMagic)
                         .ToList();
             
                     // 随机选择一个非场地魔法的奖励类型
                     rewardType = availableTypes[UnityEngine.Random.Range(0, availableTypes.Count)];
+                }
+                
+                // 应用最终确定的奖励类型
+                ApplyMiracleReward(player, miracleRarity, false, rewardType);
+
+                // 更新场地魔法标记
+                if (rewardType == MiracleRewardType.RoomMagic)
+                {
+                    roomMagicTriggered = true;
                 }
                 
                 if (rewards.ContainsKey(rewardType))
@@ -331,7 +356,7 @@ public static class PubBuyManager_ChaosBox
         
         // 构建属性变化信息
         string statChangeInfo = "";
-        if (statChanges.MaxHealth != 0) statChangeInfo += $"■ 最大生命: {statChanges.MaxHealth:+0;-#}\n";
+        if (statChanges.MaxHealth != 0) statChangeInfo += $"■ 生命: {statChanges.MaxHealth:+0;-#}\n";
         if (statChanges.AttackDamage != 0) statChangeInfo += $"■ 攻击: {statChanges.AttackDamage:+0;-#}\n";
         if (statChanges.AbilityPower != 0) statChangeInfo += $"■ 法强: {statChanges.AbilityPower:+0;-#}\n";
         if (statChanges.AttackSpeed != 0) statChangeInfo += $"■ 攻速: {statChanges.AttackSpeed:+0;-#}%\n";
@@ -362,15 +387,18 @@ public static class PubBuyManager_ChaosBox
 
         string freeCountMessage = freeCount > 0 ? $" (赠送{freeCount}次)" : "";    
 
-        string roomMagicInfo = roomMagicTriggered ? $"触发场地魔法：【{triggeredRoomMagicName}】" : "";
+        string roomMagicInfo = roomMagicTriggered ? $"触发场地魔法【{triggeredRoomMagicName}】" : "";
         
         PubBuyUtil.BroadcastMessage(
             $"{player.name} 批量购买了 {count} 个混沌盲盒{freeCountMessage}!\n" +
             $"品质统计:\n" +
             $"<color=#EE3830>传说</color>: {legendaryCount}({legendaryPercent}%)丨<color=#B654E1>史诗</color>: {epicCount}({epicPercent}%)丨<color=#31EFF1>稀有</color>: {rareCount}({rarePercent}%)丨<color=#E4F0F1>普通</color>: {commonCount}({commonPercent}%)\n" +
-            $"属性变化:\n{statChangeInfo}" +
-            $"额外:{roomMagicInfo}"
+            $"属性变化:\n{statChangeInfo}" 
         );
+        if (triggeredRoomMagicName != "")
+        {
+            PubBuyUtil.BroadcastMessage($"额外:{roomMagicInfo}");
+        }
     }
 
     // 购买当前金币能买的最大数量
@@ -432,7 +460,7 @@ public static class PubBuyManager_ChaosBox
     public static MiracleRewardType ApplyMiracleReward(
         DewPlayer player, 
         Rarity rarity, 
-        bool showMessage = true,    
+        bool showMessage = true,
         MiracleRewardType? forceType = null)
     {
         // 获取品质系数
@@ -445,8 +473,7 @@ public static class PubBuyManager_ChaosBox
         }
         else
         {
-            var availableRewards = GetAvailableRewardTypes(rarity);
-            rewardType = availableRewards[UnityEngine.Random.Range(0, availableRewards.Count)];
+            rewardType = SelectRewardByProbability(rarity);
         }
 
         Hero hero = player.hero;
@@ -484,22 +511,26 @@ public static class PubBuyManager_ChaosBox
                 hero.Status.AddStatBonus(new StatBonus { abilityHasteFlat = hasteBonus });
                 if(showMessage) PubBuyUtil.BroadcastMessage($"{GetRarityColor(rarity)}冷却缩减 +{hasteBonus}");
                 break;
-                
+            
+            // 次要奖励
             case MiracleRewardType.MovementSpeed:
-                float speedBonus = 24 * rarityMultiplier;
+                int speedBonus = rarity == Rarity.Legendary ? 16 : 16;
                 hero.Status.AddStatBonus(new StatBonus { movementSpeedPercentage = speedBonus });
                 if(showMessage) PubBuyUtil.BroadcastMessage($"{GetRarityColor(rarity)}移动速率 +{speedBonus}");
                 break;
 
             case MiracleRewardType.Armor:
-                float armorBonus = 40 * rarityMultiplier;
+                float armorBonus = 31 * rarityMultiplier;
                 hero.Status.AddStatBonus(new StatBonus { armorFlat = armorBonus });
                 if(showMessage) PubBuyUtil.BroadcastMessage($"{GetRarityColor(rarity)}护甲 +{armorBonus}");
                 break;
-
-            // 次要奖励
+       
             case MiracleRewardType.AttackRange:
-                int rangeBonus = rarity == Rarity.Legendary ? 2 : 1;
+                int rangeBonus = rarity == Rarity.Legendary ? 1 : 1;
+                if (hero.Ability.attackAbility.configs[0].castMethod._range < 9)
+                {
+                    rangeBonus *= 2;
+                }
                 if (hero.Ability?.attackAbility != null)
                 {
                     hero.Ability.attackAbility.configs[0].castMethod._range += rangeBonus;
@@ -511,37 +542,53 @@ public static class PubBuyManager_ChaosBox
                 break;
                 
             case MiracleRewardType.Tenacity:
-                int tenacityBonus = rarity == Rarity.Legendary ? 42 : 31;
+                int tenacityBonus = rarity == Rarity.Legendary ? 30 : 16;
                 hero.Status.AddStatBonus(new StatBonus { tenacityFlat = tenacityBonus });
                 if(showMessage) PubBuyUtil.BroadcastMessage($"{GetRarityColor(rarity)}韧性 +{tenacityBonus}");
                 break;
                 
             case MiracleRewardType.CritChance:
-                float critChanceBonus = rarity == Rarity.Legendary ? 0.16f : 0.08f;
+                float critChanceBonus = rarity == Rarity.Legendary ? 0.10f : 0.06f;
                 hero.Status.AddStatBonus(new StatBonus { critChanceFlat = critChanceBonus });
                 if(showMessage) PubBuyUtil.BroadcastMessage($"{GetRarityColor(rarity)}暴击率 +{critChanceBonus*100}%");
                 break;
         
             case MiracleRewardType.CritAmp:
-                float critAmpBonus = rarity == Rarity.Legendary ? 0.24f : 0.12f;
+                float critAmpBonus = rarity == Rarity.Legendary ? 0.20f : 0.12f;
                 hero.Status.AddStatBonus(new StatBonus { critAmpFlat = critAmpBonus });
                 if(showMessage) PubBuyUtil.BroadcastMessage($"{GetRarityColor(rarity)}暴击伤害 +{critAmpBonus*100}%");
                 break;
                 
             case MiracleRewardType.MoveCooldown:
-                float moveCooldownBonus = rarity == Rarity.Legendary ? 0.16f : 0.08f;
-                if (hero.Skill.Movement != null && hero.Skill.Movement.configs[0].cooldownTime > 0)
+                // 检查冷却时间是否已经足够低
+                if (hero.Skill.Movement != null && hero.Skill.Movement.configs[0].cooldownTime <= 1.3f)
                 {
-                    hero.Skill.Movement.configs[0].cooldownTime -= moveCooldownBonus;
-                    // hero.Skill.Movement.configs[1].cooldownTime -= moveCooldownBonus;
-                    // hero.Skill.Movement.SyncCastMethodChanges(0);
-                    // hero.Skill.Movement.SyncCastMethodChanges(1);
+                    // 获取所有可能的 Legendary 奖励（排除 MoveCooldown）
+                    var legendaryRewards = GetAllPossibleRewards(Rarity.Legendary)
+                        .Where(t => t != MiracleRewardType.MoveCooldown)
+                        .ToList();
+                    // 确保有可用的 Legendary 奖励
+                    if (legendaryRewards.Count > 0)
+                    {
+                        // 随机选择一个 Legendary 奖励
+                        MiracleRewardType randomLegendaryReward = legendaryRewards[Random.Range(0, legendaryRewards.Count)];
+            
+                        // 递归调用自身应用新奖励（强制使用 Legendary 稀有度）
+                        return ApplyMiracleReward(player, Rarity.Legendary, showMessage, randomLegendaryReward);
+                    }
+        
+                    // 如果没有其他可用奖励，默认给完美
+                    return ApplyMiracleReward(player, Rarity.Legendary, showMessage, MiracleRewardType.AttackSpeed);
                 }
+
+                // 正常应用冷却缩减奖励
+                float moveCooldownBonus = rarity == Rarity.Legendary ? 0.06f : 0.06f;
+                hero.Skill.Movement.configs[0].cooldownTime -= moveCooldownBonus;
                 if(showMessage) PubBuyUtil.BroadcastMessage($"{GetRarityColor(rarity)}闪避冷却 -{moveCooldownBonus*100}%");
                 break;
             
             case MiracleRewardType.Ascension:
-                int ascensionBonus = rarity == Rarity.Legendary ? 3 : 1;
+                int ascensionBonus = rarity == Rarity.Legendary ? 2 : 1;
                 if (hero.level <= 30)
                 {
                     hero.Status.level += ascensionBonus;
@@ -556,16 +603,49 @@ public static class PubBuyManager_ChaosBox
 
             // 其他奖励
             case MiracleRewardType.Perfection:
-                int quality = rarity == Rarity.Legendary ? 80 : 160;
-                Vector3 spawnPos = hero.agentPosition + 
-                                 (Rift.instance.transform.position - hero.agentPosition).normalized * 2.5f;
-                Dew.CreateGem<Gem>(
-                    DewResources.GetByShortTypeName<Gem>("Gem_L_Perfect"), 
-                    spawnPos, 
-                    quality, 
-                    player
+                // int quality = rarity == Rarity.Legendary ? 80 : 160;
+                // Vector3 spawnPos = hero.agentPosition + 
+                //                  (Rift.instance.transform.position - hero.agentPosition).normalized * 2.5f;
+                // Dew.CreateGem<Gem>(
+                //     DewResources.GetByShortTypeName<Gem>("Gem_L_Perfect"), 
+                //     spawnPos, 
+                //     quality, 
+                //     player
+                // );
+                // if(showMessage) PubBuyUtil.BroadcastMessage($"{GetRarityColor(rarity)}获得完美宝石（品质 {quality}）!");
+                hero.Status.AddStatBonus(new StatBonus 
+                {
+                    maxHealthFlat = 160,
+                    attackDamageFlat = 16,
+                    attackSpeedPercentage = 16,
+                    abilityPowerFlat = 16,
+                    abilityHasteFlat = 16,
+                    armorFlat = 16,
+                    tenacityFlat = 16,
+                    healthRegenFlat = 6.6f,
+                    movementSpeedPercentage = 6.6f,
+                    fireEffectAmpFlat = 0.066f,
+                    coldEffectAmpFlat = 0.066f,
+                    lightEffectAmpFlat = 0.066f,
+                    darkEffectAmpFlat = 0.066f,
+                });
+                if(showMessage) PubBuyUtil.BroadcastMessage(
+                    $"{GetRarityColor(rarity)}：神圣分割，「十二」，纯粹的完美！" +
+                    "■ 生命+160 " +
+                    "■ 攻击+16 " +
+                    "■ 攻速+16% " +
+                    "■ 法强+16 " +
+                    "■ 冷却+16 " +
+                    "■ 护甲+16 " +
+                    "■ 韧性+16" +
+                    "■ 生命回复+6.6" +
+                    "■ 移动速率+6.6%" +
+                    "■ 火伤加成+6.6%" +
+                    "■ 冰伤加成+6.6%" +
+                    "■ 光伤加成+6.6%" +
+                    "■ 暗伤加成+6.6%" +
+                    "俗话说的好，神圣分割「十二」其实是「十三」也是很正常的吧（笑"
                 );
-                if(showMessage) PubBuyUtil.BroadcastMessage($"{GetRarityColor(rarity)}获得完美宝石（品质 {quality}）!");
                 break;
                 
             case MiracleRewardType.HealthRegen:
@@ -575,7 +655,7 @@ public static class PubBuyManager_ChaosBox
                 break;
                 
             case MiracleRewardType.fireEffectAmp:
-                float fireEffectAmpBonus = rarity == Rarity.Legendary ? 0.36f : 0.18f;
+                float fireEffectAmpBonus = rarity == Rarity.Legendary ? 0.16f : 0.08f;
                 hero.Status.AddStatBonus(new StatBonus { fireEffectAmpFlat = fireEffectAmpBonus });
                 if(showMessage) PubBuyUtil.BroadcastMessage($"{GetRarityColor(rarity)}火伤加成 +{fireEffectAmpBonus*100}%");
                 break;
@@ -624,21 +704,52 @@ public static class PubBuyManager_ChaosBox
                 break;
             
             case MiracleRewardType.RoomMagic:
-                List<string> roomMods = roomModName.Keys.ToList();
-                if (NetworkedManagerBase<ZoneManager>.instance != null) {
-                    // 随机选择一个Mod
-                    string selectedMod = roomMods[UnityEngine.Random.Range(0, roomMods.Count)];
-            
-                    // 添加Mod
+                if (NetworkedManagerBase<ZoneManager>.instance != null) 
+                {
+                    // 计算总权重
+                    int totalWeight = roomModName.Values.Sum(x => x.weight);
+                    int randomWeight = UnityEngine.Random.Range(0, totalWeight);
+                    int currentWeight = 0;
+                    string selectedMod = "";
+        
+                    // 根据权重随机选择
+                    foreach (var mod in roomModName)
+                    {
+                        currentWeight += mod.Value.weight;
+                        if (randomWeight < currentWeight)
+                        {
+                            selectedMod = mod.Key;
+                            break;
+                        }
+                    }
                     NetworkedManagerBase<ZoneManager>.instance.AddModifier(
                         NetworkedManagerBase<ZoneManager>.instance.currentNodeIndex, 
                         new ModifierData {
                             type = selectedMod,
                             clientData = null
                         });
-                    
-                    if(showMessage) PubBuyUtil.BroadcastMessage($"{GetRarityColor(rarity)}发动场地魔法：【{roomModName[selectedMod]}】");
+                    if(showMessage) PubBuyUtil.BroadcastMessage($"{GetRarityColor(rarity)}发动场地魔法：【{roomModName[selectedMod].name}】");
                 }
+                break;
+            case MiracleRewardType.SecondWindStack:
+                Se_FatalHitProtection_Interrupt effect;
+                if (hero.Status.TryGetStatusEffect<Se_FatalHitProtection_Interrupt>(out effect))
+                {
+                    effect.SetStack(effect.stack + 1);
+                }
+                else
+                {
+                    hero.CreateStatusEffect(hero, new CastInfo(hero), delegate(Se_FatalHitProtection_Interrupt se)
+                    {
+                        // 在原本的金身叠加
+                        // effect.SetStack(effect.stack + 1);
+                
+                        // 单独的金身，更醒目
+                        se.SetStack(1);
+                        se.invulTime = Star_Global_FatalHitProtection.InvulnerableTime;
+                    });
+                }
+                if(showMessage) PubBuyUtil.BroadcastMessage($"{GetRarityColor(rarity)}第二风(金身)次数+1");
                 break;
         }
                 
@@ -654,6 +765,56 @@ public static class PubBuyManager_ChaosBox
 
         return rewardType;
     }
+    
+    /// <summary>
+    /// 概率分层选择核心方法
+    /// </summary>
+    private static MiracleRewardType SelectRewardByProbability(Rarity rarity)
+    {
+        // 权重常量定义
+        const int PRIMARY_WEIGHT = 57;   
+        const int SECONDARY_WEIGHT = 29; 
+        const int OTHER_WEIGHT = 14;     
+    
+        // 获取各分类奖励池
+        var primary = GetPrimaryRewards(rarity);
+        var secondary = GetSecondaryRewards(rarity);
+        var other = GetOtherRewards(rarity);
+    
+        // 处理空列表情况
+        if (primary.Count == 0) 
+            return MiracleRewardType.MaxHealth;
+    
+        // 计算实际权重
+        int actualPrimaryWeight = primary.Count > 0 ? PRIMARY_WEIGHT : 0;
+        int actualSecondaryWeight = secondary.Count > 0 ? SECONDARY_WEIGHT : 0;
+        int actualOtherWeight = other.Count > 0 ? OTHER_WEIGHT : 0;
+    
+        // 调整权重总和
+        int totalWeight = actualPrimaryWeight + actualSecondaryWeight + actualOtherWeight;
+        if (totalWeight == 0) 
+            return MiracleRewardType.MaxHealth;
+    
+        // 生成随机决策点
+        int random = UnityEngine.Random.Range(0, totalWeight);
+    
+        // 分层选择逻辑
+        if (random < actualPrimaryWeight)
+        {
+            return primary[UnityEngine.Random.Range(0, primary.Count)];
+        }
+        else if (random < actualPrimaryWeight + actualSecondaryWeight)
+        {
+            return secondary[UnityEngine.Random.Range(0, secondary.Count)];
+        }
+        else
+        {
+            return other.Count > 0 
+                ? other[UnityEngine.Random.Range(0, other.Count)] 
+                : primary[UnityEngine.Random.Range(0, primary.Count)];
+        }
+    }
+
 
     // 辅助方法
     private static float GetRarityMultiplier(Rarity rarity)
@@ -667,74 +828,98 @@ public static class PubBuyManager_ChaosBox
             _ => 0.4f
         };
     }
-        
-    private static List<MiracleRewardType> GetAvailableRewardTypes(Rarity rarity) 
+    
+    // 辅助方法 - 获取全量奖励类型
+    private static List<MiracleRewardType> GetAllPossibleRewards(Rarity rarity)
     {
-        var rewards = new List<MiracleRewardType>();
-
-        // 主要奖励类型（57%概率）
-        var primaryTypes = new List<MiracleRewardType>
-        {
-            MiracleRewardType.MaxHealth,
-            MiracleRewardType.AttackDamage,
-            MiracleRewardType.AttackSpeed,
-            MiracleRewardType.AbilityPower,
-            MiracleRewardType.AbilityHaste
-        };
-        foreach (var type in primaryTypes)
-        {
-            rewards.Add(type);
-            rewards.Add(type); 
-            rewards.Add(type);
-        }
-
-        // 次要奖励类型（29%概率）
-        var secondaryTypes = new List<MiracleRewardType>
-        {
-            MiracleRewardType.MovementSpeed,
-            MiracleRewardType.Armor
-        };
-        if (rarity >= Rarity.Epic)
-        {
-            secondaryTypes.Add(MiracleRewardType.AttackRange);
-            secondaryTypes.Add(MiracleRewardType.Tenacity);
-            secondaryTypes.Add(MiracleRewardType.CritChance);
-            secondaryTypes.Add(MiracleRewardType.CritAmp);
-            secondaryTypes.Add(MiracleRewardType.MoveCooldown);
-            secondaryTypes.Add(MiracleRewardType.Ascension);
-        }
-        if (rarity == Rarity.Legendary)
-        {
-            // 仅在传说品质时添加
-        }
-        foreach (var type in secondaryTypes)
-        {
-            rewards.Add(type);
-            rewards.Add(type); 
-        }
-
-        // 其他奖励（14%概率）
-        if (rarity == Rarity.Common || rarity == Rarity.Legendary)
-        {
-            rewards.Add(MiracleRewardType.RoomMagic);
-        }
-        if (rarity >= Rarity.Epic)
-        {
-            rewards.Add(MiracleRewardType.Perfection);
-            rewards.Add(MiracleRewardType.HealthRegen);
-            rewards.Add(MiracleRewardType.fireEffectAmp);
-            rewards.Add(MiracleRewardType.coldEffectAmp);
-            rewards.Add(MiracleRewardType.lightEffectAmp);
-            rewards.Add(MiracleRewardType.darkEffectAmp);
-            rewards.Add(MiracleRewardType.MoveRange);
-        }
-        if (rarity == Rarity.Legendary)
-        {
-            rewards.Add(MiracleRewardType.MoveMaxCharges);
-        }
-
-        
-        return rewards; 
+        List<MiracleRewardType> rewards = new();
+        rewards.AddRange(GetPrimaryRewards(rarity));
+        rewards.AddRange(GetSecondaryRewards(rarity));
+        rewards.AddRange(GetOtherRewards(rarity));
+        return rewards.Distinct().ToList();
     }
+    
+    private static List<MiracleRewardType> GetPrimaryRewards(Rarity rarity)
+{
+    // 核心战斗属性奖励，所有品质通用
+    return new List<MiracleRewardType>
+    {
+        MiracleRewardType.MaxHealth,      // 最大生命
+        MiracleRewardType.AttackDamage,   // 攻击力
+        MiracleRewardType.AttackSpeed,    // 攻击速度
+        MiracleRewardType.AbilityPower,   // 法术强度
+        MiracleRewardType.AbilityHaste    // 技能急速
+    };
+}
+
+/// <summary>
+/// 说明：功能型属性奖励，占29%概率
+/// </summary>
+private static List<MiracleRewardType> GetSecondaryRewards(Rarity rarity)
+{
+    var rewards = new List<MiracleRewardType>
+    {
+        MiracleRewardType.Armor           // 护甲
+    };
+
+    // 史诗及以上品质
+    if (rarity >= Rarity.Epic)
+    {
+        rewards.Add(MiracleRewardType.Tenacity);   // 韧性
+        rewards.Add(MiracleRewardType.CritChance); // 暴击率
+        rewards.Add(MiracleRewardType.CritAmp);    // 暴击伤害
+        rewards.Add(MiracleRewardType.Ascension);  // 等级提升
+    }
+
+    // 仅传说品质
+    if (rarity == Rarity.Legendary)
+    {
+        rewards.Add(MiracleRewardType.AttackRange);    // 攻击距离
+        rewards.Add(MiracleRewardType.MoveCooldown);  // 闪避冷却
+        rewards.Add(MiracleRewardType.MovementSpeed);  // 移动速度
+    }
+
+    return rewards;
+}
+
+/// <summary>
+/// 说明：其他奖励类型，占14%概率
+/// </summary>
+private static List<MiracleRewardType> GetOtherRewards(Rarity rarity)
+{
+    var rewards = new List<MiracleRewardType>();
+
+    // 普通和传说品质可触发场地魔法
+    if (rarity == Rarity.Common || rarity == Rarity.Legendary)
+    {
+        rewards.Add(MiracleRewardType.RoomMagic);  // 场地魔法
+    }
+
+    // 史诗及以上品质
+    if (rarity >= Rarity.Epic)
+    {
+        rewards.AddRange(new[]
+        {
+            MiracleRewardType.HealthRegen,     // 生命回复
+            MiracleRewardType.fireEffectAmp,   // 火伤增幅
+            MiracleRewardType.coldEffectAmp,   // 冰伤增幅
+            MiracleRewardType.lightEffectAmp,  // 光伤增幅
+            MiracleRewardType.darkEffectAmp,  // 暗伤增幅
+            MiracleRewardType.MoveRange       // 闪避距离
+        });
+    }
+
+    // 仅传说品质
+    if (rarity == Rarity.Legendary)
+    {
+        // 闪避充能次数
+        rewards.Add(MiracleRewardType.MoveMaxCharges); 
+        // 纯粹完美
+        rewards.Add(MiracleRewardType.Perfection);      
+    }
+
+    return rewards;
+}
+
 }
 
